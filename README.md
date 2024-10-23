@@ -54,7 +54,7 @@ Trilium Blog 是一个基于 Trilium Notes 的轻量级博客系统。它允许�
 2. 复制并编辑配置文件：
 
    ```
-   cp config.json.example config.json
+   cp ./backend/config-example.json ./backend/config.json
    ```
 
    编辑 `config.json`，填入您的 Trilium API URL、Token 和其他设置。
