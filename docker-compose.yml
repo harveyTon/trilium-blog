@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  trilium-blog:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trilium-blog
+    ports:
+      - "8080:8080"
+    environment:
+      - TZ=Asia/Shanghai
+    depends_on:
+      - redis
+    networks:
+      - trilium-network
+
+  redis:
+    image: redis:alpine
+    container_name: trilium-redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - trilium-network
+
+networks:
+  trilium-network:
+    driver: bridge
+
+volumes:
+  redis-data:

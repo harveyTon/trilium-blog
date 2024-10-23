@@ -1,0 +1,8 @@
+{
+  "triliumApiUrl": "your_trilium_url",
+  "triliumToken": "your_trilium_etapi_token",
+  "articlesPerPage": 9,
+  "blogName": "Your Blog Name",
+  "blogTitle": "Your Blog Title",
+  "domain": "https://your-domain.com"
+}

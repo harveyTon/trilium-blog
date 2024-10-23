@@ -1,0 +1,106 @@
+basePath: /api
+definitions:
+  models.Article:
+    properties:
+      attributes:
+        items:
+          $ref: '#/definitions/models.Attribute'
+        type: array
+      content:
+        type: string
+      dateModified:
+        type: string
+      mime:
+        type: string
+      noteId:
+        type: string
+      summary:
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  models.Attribute:
+    properties:
+      name:
+        type: string
+      type:
+        type: string
+      value:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: This is a blog API server for Trilium Notes.
+  title: Trilium Blog API
+  version: "1.0"
+paths:
+  /articles:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of blog articles
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get a list of articles
+      tags:
+      - articles
+  /articles/{noteId}:
+    get:
+      consumes:
+      - application/json
+      description: Get a single blog article by its noteId
+      parameters:
+      - description: Note ID
+        in: path
+        name: noteId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Article'
+      summary: Get a single article
+      tags:
+      - articles
+  /attachments/{attachmentId}:
+    get:
+      consumes:
+      - application/json
+      description: 获取指定ID的附件内容，仅返回属于博客文章的附件
+      parameters:
+      - description: 附件ID
+        in: path
+        name: attachmentId
+        required: true
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: 附件内容
+          schema:
+            items:
+              type: integer
+            type: array
+      summary: 获取附件内容
+      tags:
+      - attachments
+swagger: "2.0"
