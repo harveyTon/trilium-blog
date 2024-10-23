@@ -28,6 +28,6 @@ ENV TZ="Asia/Shanghai"
 WORKDIR /app
 COPY --from=backend-builder /app/backend/trilium-blog .
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
-COPY config.json .
+COPY backend/config.json . 
 EXPOSE 8080
 CMD ["./trilium-blog"]
