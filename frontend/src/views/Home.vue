@@ -114,7 +114,7 @@ export default {
     onMounted(() => {
       fetchArticles();
       if (blogStore.blogInfo.blogTitle) {
-        document.title = `${blogStore.blogInfo.title} - Powered By Trilium Blog`;
+        document.title = `${blogStore.blogInfo.blogTitle} - Powered By Trilium Blog`;
       }
     });
 
@@ -131,7 +131,7 @@ export default {
       () => blogStore.blogInfo,
       (newBlogInfo) => {
         if (newBlogInfo.blogTitle) {
-          document.title = `${newBlogInfo.title} - Powered By Trilium Blog`;
+          document.title = `${newBlogInfo.blogTitle} - Powered By Trilium Blog`;
         }
       },
       { immediate: true }

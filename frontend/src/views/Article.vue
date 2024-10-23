@@ -312,8 +312,8 @@ export default {
     };
 
     const updateTitle = () => {
-      if (article.value && blogInfo.value.title) {
-        document.title = `${article.value.title} - ${blogInfo.value.title} - Powered By Trilium Blog`;
+      if (article.value && blogInfo.value.blogTitle) {
+        document.title = `${article.value.title} - ${blogInfo.value.blogTitle} - Powered By Trilium Blog`;
       }
     };
 
