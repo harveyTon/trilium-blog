@@ -134,15 +134,19 @@ export default {
 
     const initArtalk = () => {
       if (artalkContainer.value && article.value) {
-        artalkInstance = Artalk.init({
-          el: artalkContainer.value,
-          pageKey: "/post/" + route.params.noteId,
-          pageTitle: article.value.title,
-          pvEl: ".artalk-pv-count",
-          server: "https://comments.uto.to",
-          site: blogInfo.value.blogName,
-          darkMode: isDarkMode(),
-        });
+        try {
+          artalkInstance = Artalk.init({
+            el: artalkContainer.value,
+            pageKey: "/post/" + route.params.noteId,
+            pageTitle: article.value.title,
+            pvEl: ".artalk-pv-count",
+            server: "https://comments.uto.to",
+            site: blogInfo.value.blogName,
+            darkMode: isDarkMode(),
+          });
+        } catch (error) {
+          console.error("Init Artalk Error:", error);
+        }
       }
     };
 
@@ -300,12 +304,6 @@ export default {
       processedContent.value = tempDiv.innerHTML;
 
       nextTick(() => {
-        document
-          .querySelectorAll(".article-content pre code")
-          .forEach((block) => {
-            Prism.highlightElement(block);
-          });
-
         Fancybox.bind("[data-fancybox]", {});
         setupIntersectionObserver();
       });
@@ -624,6 +622,7 @@ html.dark .article-content pre {
 
 html.dark .article-content code {
   color: #80a0ff;
+  text-shadow: none !important;
 }
 
 html.dark .article-comments h2 {
