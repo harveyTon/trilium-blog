@@ -140,10 +140,12 @@ func GetArticle(noteId string) (*models.Article, string, error) {
 			if err == nil {
 				defer resp.Body.Close()
 				body, _ := io.ReadAll(resp.Body)
-				html := bluemonday.UGCPolicy().SanitizeBytes(body)
+				p := bluemonday.UGCPolicy()
+				p.AllowAttrs("class").OnElements("code")
+				html := p.SanitizeBytes(body)
 				content = string(html)
 				content = regexp.MustCompile(`api/attachments/([^/]+)/image/[^"]+`).ReplaceAllString(content, "/attachments/$1")
-				content = replaceImgSrc(content)
+				content = replaceContent(content)
 				content = removeHtmlHeadBody(content)
 			} else {
 				contentErr = err
@@ -293,12 +295,59 @@ func hasBlogAttribute(attributes []models.Attribute) bool {
 	return false
 }
 
-func replaceImgSrc(html string) string {
+func replaceContent(html string) string {
+	languageMap := map[string]string{
+		"language-application-javascript-env-frontend": "language-javascript",
+		"language-application-javascript-env-backend":  "language-javascript",
+		"language-text-x-sh":                           "language-bash",
+		"language-text-x-java":                         "language-java",
+		"language-text-x-php":                          "language-php",
+		"language-text-x-dockerfile":                   "language-dockerfile",
+		"language-text-html":                           "language-html",
+		"language-text-plain":                          "language-text",
+	}
+
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
 	if err != nil {
 		logger.Infof("Failed to parse HTML: %v", err)
 		return html
 	}
+
+	doc.Find("pre code").Each(func(i int, s *goquery.Selection) {
+		class, exists := s.Attr("class")
+		logger.Debugf("Processing code block %d, class: %s, exists: %v", i, class, exists)
+
+		matched := false
+		for oldClass, newClass := range languageMap {
+			if s.HasClass(oldClass) {
+				logger.Debugf("Found matching class: %s -> %s", oldClass, newClass)
+				s.RemoveClass(oldClass)
+				s.AddClass(newClass)
+				matched = true
+				break
+			}
+		}
+
+		if !matched {
+			hasLanguageClass := false
+			classes := strings.Split(s.AttrOr("class", ""), " ")
+			logger.Debugf("No match found, current classes: %v", classes)
+			for _, class := range classes {
+				if strings.HasPrefix(class, "language-") {
+					hasLanguageClass = true
+					logger.Debugf("Found existing language class: %s", class)
+					break
+				}
+			}
+			if !hasLanguageClass {
+				logger.Debugf("Adding default language-text class")
+				s.AddClass("language-text")
+			}
+		}
+
+		finalClass, _ := s.Attr("class")
+		logger.Debugf("Final class for code block %d: %s", i, finalClass)
+	})
 
 	doc.Find("img").Each(func(i int, s *goquery.Selection) {
 		src, _ := s.Attr("src")
@@ -310,7 +359,11 @@ func replaceImgSrc(html string) string {
 		}
 	})
 
-	result, _ := doc.Html()
+	result, err := doc.Html()
+	if err != nil {
+		logger.Infof("Failed to generate HTML: %v", err)
+		return html
+	}
 	return result
 }
 

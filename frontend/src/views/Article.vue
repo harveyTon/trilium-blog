@@ -106,8 +106,9 @@ import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import Artalk from "artalk";
 import "artalk/dist/Artalk.css";
 import axios from "axios";
+import hljs from "highlight.js";
+import "highlight.js/styles/atom-one-dark.css";
 import { storeToRefs } from "pinia";
-import Prism from "prismjs";
 import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { useBlogStore } from "../store";
@@ -159,7 +160,7 @@ export default {
       if (element) {
         const yOffset = -80;
         const y =
-          element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          element.getBoundingClientRect().top + window.scrollY + yOffset;
         window.scrollTo({ top: y, behavior: "smooth" });
       }
     };
@@ -261,7 +262,24 @@ export default {
       const options = { year: "numeric", month: "long", day: "numeric" };
       return new Date(dateString).toLocaleDateString(undefined, options);
     };
+    const highlightCode = () => {
+      nextTick(() => {
+        document.querySelectorAll("pre code").forEach((el) => {
+          console.log(el);
+          const classList = el.className;
+          const languageMatch = classList.match(/language-(\S+)/);
+          const language = languageMatch ? languageMatch[1] : "";
 
+          const codeContent = el.innerHTML;
+          el.innerHTML = language
+            ? hljs.highlight(codeContent, { language }).value
+            : hljs.highlightAuto(codeContent).value;
+          el.classList.add("hljs");
+
+          console.log(el);
+        });
+      });
+    };
     const processContent = async () => {
       if (!article.value) return;
 
@@ -297,14 +315,11 @@ export default {
           });
         });
 
-      tempDiv.querySelectorAll("pre code").forEach((block) => {
-        Prism.highlightElement(block);
-      });
-
       processedContent.value = tempDiv.innerHTML;
 
       nextTick(() => {
         Fancybox.bind("[data-fancybox]", {});
+        highlightCode();
         setupIntersectionObserver();
       });
     };
