@@ -116,4 +116,4 @@ Trilium Blog 是一个基于 Trilium Notes 的轻量级博客系统。它允许�
 - [Element Plus](https://element-plus.org/)
 - [Artalk](https://github.com/ArtalkJS/Artalk)
 - [Fancybox](https://fancyapps.com/fancybox/)
-- [Prism.js](https://prismjs.com/)
+- [highlight.js](https://github.com/highlightjs/highlight.js)
