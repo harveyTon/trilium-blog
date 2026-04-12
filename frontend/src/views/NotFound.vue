@@ -39,12 +39,17 @@ export default {
 }
 
 h1 {
-  font-size: 72px;
+  font-size: clamp(3rem, 12vw, 72px);
   color: var(--accent);
 }
 
 a {
   color: var(--accent);
   text-decoration: none;
+}
+
+a:hover,
+a:focus-visible {
+  text-decoration: underline;
 }
 </style>

@@ -6,14 +6,24 @@
           <img src="./assets/logo.png" :alt="site.name + ' - 返回首页'" class="blog-logo" />
           <span class="blog-title">{{ site.name }}</span>
         </router-link>
-        <el-icon class="theme-icon" @click="toggleDark()">
-          <component :is="isDark ? 'Sunny' : 'Moon'" />
-        </el-icon>
+        <button
+          class="theme-toggle"
+          :aria-label="isDark ? '切换到亮色模式' : '切换到暗色模式'"
+          @click="toggleDark()"
+        >
+          <el-icon>
+            <component :is="isDark ? 'Sunny' : 'Moon'" />
+          </el-icon>
+        </button>
       </div>
     </el-header>
     <el-main class="app-main">
       <div class="main-content">
-        <router-view></router-view>
+        <router-view v-slot="{ Component }">
+          <keep-alive include="HomePage">
+            <component :is="Component" />
+          </keep-alive>
+        </router-view>
       </div>
     </el-main>
     <el-footer class="app-footer">
@@ -103,7 +113,7 @@ export default {
 
   --text-primary: #2c3e50;
   --text-secondary: #636363;
-  --text-muted: #888888;
+  --text-muted: #6b6b6b;
   --text-inverse: #ffffff;
 
   --accent: #409eff;
@@ -122,7 +132,7 @@ html.dark {
 
   --text-primary: #f5f5f5;
   --text-secondary: #bdbdbd;
-  --text-muted: #909090;
+  --text-muted: #a0a0a0;
 
   --border-color: rgba(255, 255, 255, 0.12);
 
@@ -136,6 +146,11 @@ body {
   padding: 0;
   background-color: var(--bg-page);
   color: var(--text-primary);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 #app {
@@ -237,7 +252,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s;
+  transition: background-color 0.3s, color 0.3s;
 }
 
 .el-backtop:hover {
@@ -289,14 +304,23 @@ html.dark .el-backtop:hover {
   background-color: var(--accent-hover);
   color: var(--text-on-accent);
 }
-.theme-icon {
-  font-size: 24px;
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
   cursor: pointer;
   color: var(--text-inverse);
+  font-size: 24px;
   transition: color 0.3s ease;
+  border-radius: 8px;
 }
 
-.theme-icon:hover {
+.theme-toggle:hover {
   color: var(--accent);
 }
 
@@ -309,8 +333,10 @@ html.dark .el-backtop:hover {
     margin-left: 10px;
   }
 
-  .theme-icon {
+  .theme-toggle {
     font-size: 20px;
+    width: 40px;
+    height: 40px;
   }
 }
 </style>
