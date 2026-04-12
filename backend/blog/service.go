@@ -233,8 +233,7 @@ func (s *Service) processContent(html string) string {
 
 	doc.Find("img").Each(func(i int, sel *goquery.Selection) {
 		src, _ := sel.Attr("src")
-		if strings.HasPrefix(src, "/attachments/") {
-			attachmentId := strings.TrimPrefix(src, "/attachments/")
+		if attachmentId := extractAttachmentId(src); attachmentId != "" {
 			sel.SetAttr("src", "/api/assets/"+attachmentId)
 			return
 		}
@@ -308,4 +307,14 @@ func generateID(text string) string {
 	id := re.ReplaceAllString(text, "-")
 	id = strings.Trim(id, "-")
 	return id
+}
+
+var attachmentPathRe = regexp.MustCompile(`^(?:/?(?:api/)?)?attachments/([^/]+)`)
+
+func extractAttachmentId(src string) string {
+	m := attachmentPathRe.FindStringSubmatch(src)
+	if m == nil {
+		return ""
+	}
+	return m[1]
 }

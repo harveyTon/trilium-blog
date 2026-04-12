@@ -170,3 +170,65 @@ func TestProcessContent_ImageProxy(t *testing.T) {
 		})
 	}
 }
+
+func TestExtractAttachmentId(t *testing.T) {
+	tests := []struct {
+		src  string
+		want string
+	}{
+		{"/attachments/abc123.png", "abc123.png"},
+		{"/attachments/abc123/image/photo.png", "abc123"},
+		{"attachments/abc123/image/photo.png", "abc123"},
+		{"api/attachments/MDblUNpajcNC/image/this.png", "MDblUNpajcNC"},
+		{"/api/attachments/xyrZy5SotOgq/image/image.png", "xyrZy5SotOgq"},
+		{"api/attachments/abc123", "abc123"},
+		{"/api/attachments/abc123", "abc123"},
+		{"https://external.com/photo.jpg", ""},
+		{"/local/img.png", ""},
+		{"", ""},
+	}
+	for _, tt := range tests {
+		got := extractAttachmentId(tt.src)
+		if got != tt.want {
+			t.Errorf("extractAttachmentId(%q) = %q, want %q", tt.src, got, tt.want)
+		}
+	}
+}
+
+func TestProcessContent_RelativeAttachments(t *testing.T) {
+	svc := &Service{
+		imageProxyEnabled: true,
+		imageProxyBaseUrl: "http://imgproxy.example.com",
+		domain:            "https://blog.example.com",
+	}
+
+	tests := []struct {
+		name      string
+		html      string
+		expectURL string
+	}{
+		{
+			name:      "relative api/attachments with subpath",
+			html:      `<img src="api/attachments/MDblUNpajcNC/image/this.png"/>`,
+			expectURL: "/api/assets/MDblUNpajcNC",
+		},
+		{
+			name:      "absolute /api/attachments with subpath",
+			html:      `<img src="/api/attachments/xyrZy5SotOgq/image/image.png"/>`,
+			expectURL: "/api/assets/xyrZy5SotOgq",
+		},
+		{
+			name:      "relative attachments without api prefix",
+			html:      `<img src="attachments/abc123/image/photo.png"/>`,
+			expectURL: "/api/assets/abc123",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := svc.processContent(tt.html)
+			if !strings.Contains(result, tt.expectURL) {
+				t.Errorf("\ninput:  %s\noutput: %s\nexpected to contain: %s", tt.html, result, tt.expectURL)
+			}
+		})
+	}
+}
