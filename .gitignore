@@ -5,6 +5,7 @@
 .impeccable.md
 .agents/
 .claude/
+.playwright-cli/
 skills-lock.json
 backend/logs/
 backend/trilium-blog
