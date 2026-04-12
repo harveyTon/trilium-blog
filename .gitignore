@@ -2,6 +2,7 @@
 !.vscode/extensions.json
 .idea
 .DS_Store
+AGENTS.md
 .impeccable.md
 .agents/
 .claude/
