@@ -21,7 +21,7 @@
           {{ post.title.charAt(0).toUpperCase() }}
         </div>
         <h2 class="article-title">
-          <router-link :to="{ name: 'Post', params: { noteId: post.noteId } }">
+          <router-link :to="{ name: 'Article', params: { noteId: post.noteId } }">
             {{ post.title }}
           </router-link>
         </h2>
@@ -29,7 +29,7 @@
           <span>{{ formatDate(post.dateModified) }}</span>
         </div>
         <div class="article-more">
-          <router-link :to="{ name: 'Post', params: { noteId: post.noteId } }">
+          <router-link :to="{ name: 'Article', params: { noteId: post.noteId } }">
             阅读全文
           </router-link>
         </div>
