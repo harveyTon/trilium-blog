@@ -1,4 +1,4 @@
-FROM node:18-alpine AS frontend-builder
+FROM node:24.14.1-alpine AS frontend-builder
 WORKDIR /app/frontend
 
 RUN apk add --no-cache \
@@ -15,7 +15,7 @@ RUN npm install
 COPY frontend .
 RUN npm run build
 
-FROM golang:1.23.2-alpine AS backend-builder
+FROM golang:1.25.9-alpine AS backend-builder
 WORKDIR /app/backend
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
