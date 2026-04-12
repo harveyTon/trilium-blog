@@ -11,7 +11,7 @@ RUN apk add --no-cache \
     zlib-dev
 
 COPY frontend/package*.json ./
-RUN npm install
+RUN npm ci
 COPY frontend .
 RUN npm run build
 
@@ -22,7 +22,7 @@ RUN go mod download
 COPY backend .
 RUN CGO_ENABLED=0 GOOS=linux go build -o trilium-blog .
 
-FROM alpine:latest
+FROM alpine:3.21.3
 RUN apk --no-cache add ca-certificates tzdata
 ENV TZ="Asia/Shanghai"
 WORKDIR /app
