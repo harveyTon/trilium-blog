@@ -1,24 +1,33 @@
-import axios from "axios";
 import { defineStore } from "pinia";
-export const useBlogStore = defineStore("blog", {
+import { fetchSite } from "./api/blog";
+
+export const useSiteStore = defineStore("site", {
   state: () => ({
-    blogInfo: {
-      blogName: "",
-      blogTitle: "",
+    site: {
+      name: "",
+      title: "",
+      domain: "",
+      comments: {
+        enabled: false,
+        server: "",
+        site: "",
+      },
+      imageProxy: {
+        enabled: false,
+        baseUrl: "",
+      },
     },
+    loaded: false,
   }),
   actions: {
-    async fetchBlogInfo() {
+    async fetchSiteInfo() {
       try {
-        const response = await axios.get(`/api/info`, {
-          params: {
-            t: new Date().getTime(),
-          },
-        });
-        this.blogInfo = response.data;
-        document.title = response.data.blogTitle;
+        const data = await fetchSite();
+        this.site = data;
+        document.title = data.title || "";
+        this.loaded = true;
       } catch (error) {
-        console.error("Fetch Blog Info Error:", error);
+        console.error("Fetch Site Info Error:", error);
       }
     },
   },
