@@ -24,22 +24,20 @@ var Config AppConfig
 
 // LoadConfig 从 JSON 文件加载配置
 func LoadConfig() {
-	// 获取当前工作目录
-	wd, err := os.Getwd()
-	if err != nil {
-		logger.Fatal("Unable to get working directory:", err)
+	configPath := os.Getenv("CONFIG_PATH")
+	if configPath == "" {
+		wd, err := os.Getwd()
+		if err != nil {
+			logger.Fatal("Unable to get working directory:", err)
+		}
+		configPath = filepath.Join(wd, "config.json")
 	}
 
-	// 构建配置文件路径
-	configPath := filepath.Join(wd, "config.json")
-
-	// 读取配置文件
 	file, err := os.ReadFile(configPath)
 	if err != nil {
 		logger.Fatal("Unable to read configuration file:", err)
 	}
 
-	// 解析 JSON 到 Config 结构体
 	err = json.Unmarshal(file, &Config)
 	if err != nil {
 		logger.Fatal("Unable to parse configuration file:", err)
