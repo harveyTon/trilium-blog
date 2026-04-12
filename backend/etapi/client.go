@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -44,9 +45,10 @@ type NotesResponse struct {
 }
 
 func (c *Client) GetNotes(search string) ([]Note, error) {
-	url := fmt.Sprintf("%s/etapi/notes?search=%s&orderBy=utcDateModified", c.baseURL, search)
+	encoded := url.QueryEscape(search)
+	reqURL := fmt.Sprintf("%s/etapi/notes?search=%s&orderBy=utcDateModified", c.baseURL, encoded)
 	var resp NotesResponse
-	if err := c.doRequest(url, &resp); err != nil {
+	if err := c.doRequest(reqURL, &resp); err != nil {
 		return nil, err
 	}
 	return resp.Results, nil
