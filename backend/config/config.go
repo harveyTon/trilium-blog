@@ -9,14 +9,20 @@ import (
 	"github.com/harveyTon/trilium-blog/backend/pkg/logger"
 )
 
+type ImageProxyConfig struct {
+	Enabled bool   `json:"enabled"`
+	BaseURL string `json:"baseUrl"`
+}
+
 // AppConfig 存储应用程序的所有配置
 type AppConfig struct {
-	TriliumApiUrl   string `json:"triliumApiUrl"`
-	TriliumToken    string `json:"triliumToken"`
-	ArticlesPerPage int    `json:"articlesPerPage"`
-	BlogName        string `json:"blogName"`
-	BlogTitle       string `json:"blogTitle"`
-	Domain          string `json:"domain"`
+	TriliumApiUrl   string           `json:"triliumApiUrl"`
+	TriliumToken    string           `json:"triliumToken"`
+	ArticlesPerPage int              `json:"articlesPerPage"`
+	BlogName        string           `json:"blogName"`
+	BlogTitle       string           `json:"blogTitle"`
+	Domain          string           `json:"domain"`
+	ImageProxy      ImageProxyConfig `json:"imageProxy"`
 }
 
 // Config 是全局配置变量

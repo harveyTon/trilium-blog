@@ -1,6 +1,7 @@
 package blog
 
 import (
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -15,13 +16,14 @@ type Store interface {
 }
 
 type Service struct {
-	etapiClient *etapi.Client
-	store       Store
-	blogName    string
-	blogTitle   string
-	domain      string
-	pageSize    int
-	imageProxy  string
+	etapiClient       *etapi.Client
+	store             Store
+	blogName          string
+	blogTitle         string
+	domain            string
+	pageSize          int
+	imageProxyEnabled bool
+	imageProxyBaseUrl string
 }
 
 type ServiceOption func(*Service)
@@ -42,8 +44,12 @@ func WithPageSize(size int) ServiceOption {
 	return func(s *Service) { s.pageSize = size }
 }
 
-func WithImageProxy(proxy string) ServiceOption {
-	return func(s *Service) { s.imageProxy = proxy }
+func WithImageProxyEnabled(enabled bool) ServiceOption {
+	return func(s *Service) { s.imageProxyEnabled = enabled }
+}
+
+func WithImageProxyBaseUrl(baseUrl string) ServiceOption {
+	return func(s *Service) { s.imageProxyBaseUrl = baseUrl }
 }
 
 func NewService(client *etapi.Client, store Store, opts ...ServiceOption) *Service {
@@ -67,8 +73,8 @@ func (s *Service) GetSite() Site {
 			Enabled: false,
 		},
 		ImageProxy: ImageProxyConfig{
-			Enabled: s.imageProxy != "",
-			BaseURL: s.imageProxy,
+			Enabled: s.imageProxyEnabled,
+			BaseURL: s.imageProxyBaseUrl,
 		},
 	}
 }
@@ -226,7 +232,22 @@ func (s *Service) processContent(html string) string {
 		if strings.HasPrefix(src, "/attachments/") {
 			attachmentId := strings.TrimPrefix(src, "/attachments/")
 			sel.SetAttr("src", "/api/assets/"+attachmentId)
+			return
 		}
+		if !s.imageProxyEnabled || s.imageProxyBaseUrl == "" {
+			return
+		}
+		if !strings.HasPrefix(src, "http://") && !strings.HasPrefix(src, "https://") {
+			return
+		}
+		if strings.HasPrefix(src, s.imageProxyBaseUrl) {
+			return
+		}
+		if strings.HasPrefix(src, s.domain+"/api/assets/") || strings.HasPrefix(src, s.domain+"/assets/") {
+			return
+		}
+		proxiedSrc := s.imageProxyBaseUrl + "?url=" + url.QueryEscape(src)
+		sel.SetAttr("src", proxiedSrc)
 	})
 
 	languageMap := map[string]string{
