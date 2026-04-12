@@ -2,9 +2,9 @@
   <el-container class="app-container">
     <el-header class="app-header">
       <div class="header-content">
-        <router-link to="/" class="blog-brand" @click="refreshHome">
+        <router-link to="/" class="blog-brand">
           <img src="./assets/logo.png" alt="Logo" class="blog-logo" />
-          <span class="blog-title">{{ blogStore.blogInfo.blogName }}</span>
+          <span class="blog-title">{{ site.name }}</span>
         </router-link>
         <el-icon class="theme-icon" @click="toggleDark()">
           <component :is="isDark ? 'Sunny' : 'Moon'" />
@@ -20,7 +20,7 @@
       <div class="footer-content">
         <div class="footer-text">
           <p>
-            © {{ new Date().getFullYear() }} {{ blogStore.blogInfo.blogName }}.
+            © {{ new Date().getFullYear() }} {{ site.name }}.
             保留所有权利。
           </p>
           <p>
@@ -45,7 +45,8 @@
 import { Moon, Sunny } from "@element-plus/icons-vue";
 import { useDark, useToggle } from "@vueuse/core";
 import { onMounted, watch } from "vue";
-import { useBlogStore } from "./store";
+import { storeToRefs } from "pinia";
+import { useSiteStore } from "./store";
 
 export default {
   name: "App",
@@ -54,7 +55,8 @@ export default {
     Sunny,
   },
   setup() {
-    const blogStore = useBlogStore();
+    const siteStore = useSiteStore();
+    const { site } = storeToRefs(siteStore);
     const isDark = useDark({
       storageKey: "vueuse-color-scheme",
       valueDark: "dark",
@@ -66,10 +68,6 @@ export default {
       document.documentElement.classList.toggle("dark", dark);
     };
 
-    const refreshHome = () => {
-      // TODO: PAGE-1
-    };
-
     watch(
       isDark,
       (newValue) => {
@@ -79,17 +77,16 @@ export default {
     );
 
     onMounted(() => {
-      blogStore.fetchBlogInfo();
+      siteStore.fetchSiteInfo();
       applyTheme(isDark.value);
     });
 
     return {
-      blogStore,
+      site,
       isDark,
       toggleDark,
       Moon,
       Sunny,
-      refreshHome,
     };
   },
 };
