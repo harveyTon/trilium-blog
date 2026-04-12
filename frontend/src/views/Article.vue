@@ -24,7 +24,7 @@
               <template #header>
                 <div class="card-header">
                   <div class="article-fword">
-                    {{ post.title.charAt(0).toUpperCase() }}
+                    {{ post.title ? post.title.charAt(0).toUpperCase() : '' }}
                   </div>
                   <h1 class="article-title">{{ post.title }}</h1>
                   <div class="article-date">
@@ -52,7 +52,8 @@
                 <div ref="artalkContainer"></div>
               </div>
             </el-card>
-            <el-empty v-else description="文章未找到"></el-empty>
+            <el-empty v-else-if="!loadError" description="文章未找到"></el-empty>
+            <div v-else class="load-error">加载失败，请检查网络后重试</div>
           </div>
 
           <el-affix
@@ -99,8 +100,14 @@ import { Fancybox } from "@fancyapps/ui";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import Artalk from "artalk";
 import "artalk/dist/Artalk.css";
-import hljs from "highlight.js";
+import hljs from "highlight.js/lib/core";
+import javascript from "highlight.js/lib/languages/javascript";
+import bash from "highlight.js/lib/languages/bash";
 import "highlight.js/styles/atom-one-dark.css";
+import "highlight.js/styles/atom-one-light.css";
+
+hljs.registerLanguage("javascript", javascript);
+hljs.registerLanguage("bash", bash);
 import { storeToRefs } from "pinia";
 import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
@@ -116,6 +123,7 @@ export default {
     const { site } = storeToRefs(siteStore);
     const post = ref(null);
     const loading = ref(true);
+    const loadError = ref(false);
     const anchorVisible = ref(false);
     const artalkContainer = ref(null);
     let artalkInstance = null;
@@ -129,11 +137,26 @@ export default {
       return new Date(dateString).toLocaleDateString(undefined, options);
     };
 
+    const applyHighlightTheme = () => {
+      const dark = isDarkMode();
+      for (let i = document.styleSheets.length - 1; i >= 0; i--) {
+        const sheet = document.styleSheets[i];
+        try {
+          const href = sheet.href || "";
+          if (href.includes("atom-one-dark.css")) {
+            sheet.disabled = !dark;
+          } else if (href.includes("atom-one-light.css")) {
+            sheet.disabled = dark;
+          }
+        } catch {}
+      }
+    };
+
     const highlightCode = () => {
+      applyHighlightTheme();
       document.querySelectorAll("pre code").forEach((el) => {
         const code = el.textContent ?? "";
-        const classList = el.className;
-        const languageMatch = classList.match(/language-(\S+)/);
+        const languageMatch = el.className.match(/language-(\S+)/);
         if (languageMatch) {
           el.innerHTML = hljs.highlight(code, {
             language: languageMatch[1],
@@ -147,6 +170,7 @@ export default {
 
     const setupGallery = () => {
       document.querySelectorAll(".article-content img").forEach((img) => {
+        img.loading = "lazy";
         const parent = img.parentElement;
         if (!parent) {
           return;
@@ -205,10 +229,13 @@ export default {
 
     const loadPost = async () => {
       loading.value = true;
+      loadError.value = false;
       try {
         post.value = await fetchPost(route.params.noteId);
         await enhanceContent();
         syncTitle();
+      } catch {
+        loadError.value = true;
       } finally {
         loading.value = false;
         if (typeof window.scrollTo === "function") {
@@ -222,6 +249,7 @@ export default {
         if (artalkInstance) {
           artalkInstance.setDarkMode(isDarkMode());
         }
+        applyHighlightTheme();
       });
       observer.observe(document.documentElement, {
         attributes: true,
@@ -250,6 +278,7 @@ export default {
       site,
       post,
       loading,
+      loadError,
       anchorVisible,
       artalkContainer,
       formatDate,
@@ -297,12 +326,12 @@ export default {
 
 .article-date,
 .article-source {
-  color: #7a7a7a;
+  color: var(--text-muted);
 }
 
 .article-content {
   line-height: 1.8;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .article-content img {
@@ -335,5 +364,12 @@ export default {
   .article-anchor-wrapper {
     display: none;
   }
+}
+
+.load-error {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 0;
+  font-size: 0.95rem;
 }
 </style>

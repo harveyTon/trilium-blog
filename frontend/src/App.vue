@@ -3,7 +3,7 @@
     <el-header class="app-header">
       <div class="header-content">
         <router-link to="/" class="blog-brand">
-          <img src="./assets/logo.png" alt="Logo" class="blog-logo" />
+          <img src="./assets/logo.png" :alt="site.name + ' - 返回首页'" class="blog-logo" />
           <span class="blog-title">{{ site.name }}</span>
         </router-link>
         <el-icon class="theme-icon" @click="toggleDark()">
@@ -96,16 +96,50 @@ export default {
 @import url("https://ik.imagekit.io/tigerton/LXGWWenKai-Bold/result.css");
 @import "element-plus/theme-chalk/dark/css-vars.css";
 
+:root {
+  --bg-page: #f5f7fa;
+  --bg-surface: #ffffff;
+  --bg-header-footer: #2c3e50;
+
+  --text-primary: #2c3e50;
+  --text-secondary: #636363;
+  --text-muted: #888888;
+  --text-inverse: #ffffff;
+
+  --accent: #409eff;
+  --accent-hover: #66b1ff;
+
+  --border-color: rgba(0, 0, 0, 0.12);
+
+  --font-family: "LXGW WenKai", "Helvetica Neue", Helvetica, "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+}
+
+html.dark {
+  --bg-page: #1a1a1a;
+  --bg-surface: #1f1f1f;
+  --bg-header-footer: #333333;
+
+  --text-primary: #f5f5f5;
+  --text-secondary: #bdbdbd;
+  --text-muted: #909090;
+
+  --border-color: rgba(255, 255, 255, 0.12);
+
+  --accent: #d0d0d0;
+  --accent-hover: #bdbdbd;
+  --text-on-accent: #1a1a1a;
+}
+
 body {
   margin: 0;
   padding: 0;
-  background-color: #f5f7fa;
-  color: #2c3e50;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
 }
 
 #app {
-  font-family: "LXGW WenKai", "Helvetica Neue", Helvetica, "PingFang SC",
-    "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+  font-family: var(--font-family);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -118,8 +152,8 @@ body {
 
 .app-header,
 .app-footer {
-  background-color: #2c3e50;
-  color: #ffffff;
+  background-color: var(--bg-header-footer);
+  color: var(--text-inverse);
   padding: 20px 0;
 }
 
@@ -155,7 +189,7 @@ body {
 
 .blog-title {
   font-size: 1.5em;
-  color: #ffffff;
+  color: var(--text-inverse);
   line-height: 1;
 }
 
@@ -188,7 +222,7 @@ body {
 }
 
 .footer-text a {
-  color: #ffffff;
+  color: var(--text-inverse);
   text-decoration: none;
 }
 
@@ -197,8 +231,8 @@ body {
 }
 
 .el-backtop {
-  background-color: #409eff;
-  color: #ffffff;
+  background-color: var(--accent);
+  color: var(--text-inverse);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -207,7 +241,7 @@ body {
 }
 
 .el-backtop:hover {
-  background-color: #66b1ff;
+  background-color: var(--accent-hover);
 }
 
 @media (max-width: 768px) {
@@ -246,30 +280,24 @@ body {
   }
 }
 
-html.dark {
-  background-color: #1a1a1a;
-  color: #ffffff;
-}
-
-html.dark .app-header,
-html.dark .app-footer {
-  background-color: #333333;
-}
-
-html.dark .el-main {
-  background-color: #1a1a1a;
-}
 html.dark .el-backtop {
-  color: #909399;
-  background-color: #333333;
+  background-color: var(--accent);
+  color: var(--text-on-accent);
 }
 
 html.dark .el-backtop:hover {
-  color: aliceblue;
-  background-color: #1a1a1a;
+  background-color: var(--accent-hover);
+  color: var(--text-on-accent);
 }
-.theme-switch {
-  margin-left: 20px;
+.theme-icon {
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-inverse);
+  transition: color 0.3s ease;
+}
+
+.theme-icon:hover {
+  color: var(--accent);
 }
 
 @media (max-width: 768px) {
@@ -279,23 +307,6 @@ html.dark .el-backtop:hover {
 
   .theme-switch {
     margin-left: 10px;
-  }
-}
-
-.theme-icon {
-  font-size: 24px;
-  cursor: pointer;
-  color: #ffffff;
-  transition: color 0.3s ease;
-}
-
-.theme-icon:hover {
-  color: #409eff;
-}
-
-@media (max-width: 768px) {
-  .header-content {
-    justify-content: space-between;
   }
 
   .theme-icon {
