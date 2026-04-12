@@ -12,15 +12,15 @@
     <div v-else class="article-list">
       <h3 class="article-latest">最新文章</h3>
       <el-empty v-if="!posts.length" description="暂无已发布文章" />
-      <div v-if="fetchError" class="fetch-error">{{ fetchError }}</div>
+      <div v-if="fetchError" class="fetch-error">
+        <p>{{ fetchError }}</p>
+        <el-button type="primary" @click="loadPosts">重试</el-button>
+      </div>
       <article
         v-for="post in posts"
         :key="post.noteId"
         class="article-item"
       >
-        <div class="article-beici">
-          {{ post.title ? post.title.charAt(0).toUpperCase() : '' }}
-        </div>
         <h2 class="article-title">
           <router-link :to="{ name: 'Article', params: { noteId: post.noteId } }">
             {{ post.title }}
@@ -50,7 +50,7 @@
 </template>
 
 <script>
-import { ElEmpty, ElPagination, ElSkeleton } from "element-plus";
+import { ElButton, ElEmpty, ElPagination, ElSkeleton } from "element-plus";
 import { onMounted, ref, watch } from "vue";
 import { fetchPosts } from "../api/blog";
 import { useSiteStore } from "../store";
@@ -58,6 +58,7 @@ import { useSiteStore } from "../store";
 export default {
   name: "HomePage",
   components: {
+    ElButton,
     ElEmpty,
     ElPagination,
     ElSkeleton,
@@ -126,6 +127,7 @@ export default {
       pagination,
       handleCurrentChange,
       formatDate,
+      loadPosts,
     };
   },
 };
@@ -167,7 +169,7 @@ a {
   flex-direction: column;
   box-shadow: 0 0 12px var(--border-color);
   background-color: var(--bg-surface);
-  padding: clamp(40px, 8vw, 100px) clamp(20px, 15vw, 200px);
+  padding: 40px clamp(20px, 4vw, 60px);
   min-height: 400px;
 }
 
@@ -176,24 +178,11 @@ a {
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  margin-bottom: clamp(40px, 8vw, 100px);
+  margin-bottom: 40px;
 }
 
 .article-item:last-of-type {
   margin-bottom: 40px;
-}
-
-.article-beici {
-  position: absolute;
-  top: -20px;
-  left: 0;
-  font-size: clamp(3rem, 10vw, 8rem);
-  opacity: 0.08;
-  font-weight: bold;
-  z-index: 0;
-  pointer-events: none;
-  line-height: 1;
-  user-select: none;
 }
 
 .article-title {
@@ -232,5 +221,9 @@ a {
   color: var(--text-muted);
   padding: 40px 0;
   font-size: 0.95rem;
+}
+
+.fetch-error .el-button {
+  margin-top: 16px;
 }
 </style>

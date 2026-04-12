@@ -18,14 +18,10 @@
         />
       </template>
       <template #default>
-        <div class="article-container">
-          <div class="article-layout">
+        <div class="article-layout">
             <el-card v-if="post" class="article-card">
               <template #header>
                 <div class="card-header">
-                  <div class="article-fword">
-                    {{ post.title ? post.title.charAt(0).toUpperCase() : '' }}
-                  </div>
                   <h1 class="article-title">{{ post.title }}</h1>
                   <div class="article-date">
                     {{ formatDate(post.dateModified) }}
@@ -53,48 +49,41 @@
               </div>
             </el-card>
             <el-empty v-else-if="!loadError" description="文章未找到"></el-empty>
-            <div v-else class="load-error">加载失败，请检查网络后重试</div>
+            <div v-else class="load-error">
+              <p>加载失败，请检查网络后重试</p>
+              <el-button type="primary" @click="loadPost">重试</el-button>
+            </div>
           </div>
 
-          <el-affix
-            v-if="post && post.toc && post.toc.length >= 3"
-            :offset="60"
-            class="article-anchor-wrapper"
-          >
-            <el-popover
-              placement="right"
-              :width="220"
-              trigger="click"
-              :visible="anchorVisible"
-              @hide="anchorVisible = false"
+          <div v-if="post && post.toc && post.toc.length >= 3" class="toc-wrapper">
+            <button
+              class="toc-toggle"
+              aria-label="目录"
+              @click="tocVisible = !tocVisible"
             >
-              <template #reference>
-                <el-button
-                  class="anchor-toggle"
-                  @click="anchorVisible = !anchorVisible"
+              <el-icon><Menu /></el-icon>
+            </button>
+            <div v-if="tocVisible" class="toc-panel">
+              <el-scrollbar max-height="calc(100vh - 140px)">
+                <a
+                  v-for="item in post.toc"
+                  :key="item.id"
+                  :href="'#' + item.id"
+                  :class="['toc-link', 'toc-level-' + item.level]"
+                  @click.prevent="scrollToHeading(item.id)"
                 >
-                  <el-icon><Menu /></el-icon>
-                </el-button>
-              </template>
-              <el-scrollbar max-height="calc(100vh - 120px)">
-                <el-anchor :bounds="0" :offset="70">
-                  <el-anchor-link
-                    v-for="item in post.toc"
-                    :key="item.id"
-                    :href="'#' + item.id"
-                    :title="item.title"
-                  />
-                </el-anchor>
+                  {{ item.title }}
+                </a>
               </el-scrollbar>
-            </el-popover>
-          </el-affix>
-        </div>
+            </div>
+          </div>
       </template>
     </el-skeleton>
   </div>
 </template>
 
 <script>
+import { ElButton } from "element-plus";
 import { Menu } from "@element-plus/icons-vue";
 import { Fancybox } from "@fancyapps/ui";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
@@ -116,7 +105,7 @@ import { useSiteStore } from "../store";
 
 export default {
   name: "ArticlePage",
-  components: { Menu },
+  components: { ElButton, Menu },
   setup() {
     const route = useRoute();
     const siteStore = useSiteStore();
@@ -124,7 +113,7 @@ export default {
     const post = ref(null);
     const loading = ref(true);
     const loadError = ref(false);
-    const anchorVisible = ref(false);
+    const tocVisible = ref(false);
     const artalkContainer = ref(null);
     let artalkInstance = null;
     let darkModeObserver = null;
@@ -227,6 +216,15 @@ export default {
       }
     };
 
+    const scrollToHeading = (id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        const y = el.getBoundingClientRect().top + window.scrollY - 80;
+        window.scrollTo({ top: y, behavior: "smooth" });
+      }
+      tocVisible.value = false;
+    };
+
     const loadPost = async () => {
       loading.value = true;
       loadError.value = false;
@@ -279,9 +277,11 @@ export default {
       post,
       loading,
       loadError,
-      anchorVisible,
+      tocVisible,
       artalkContainer,
       formatDate,
+      loadPost,
+      scrollToHeading,
     };
   },
 };
@@ -290,14 +290,8 @@ export default {
 <style>
 @import "artalk/dist/Artalk.css";
 
-.article-container {
-  display: flex;
-  justify-content: center;
-  position: relative;
-}
-
 .article-layout {
-  width: min(860px, 100%);
+  width: 100%;
 }
 
 .article-card {
@@ -305,20 +299,6 @@ export default {
 }
 
 .card-header {
-  position: relative;
-  overflow: hidden;
-}
-
-.article-fword {
-  position: absolute;
-  top: clamp(-14px, -3vw, -28px);
-  left: clamp(-20px, -2vw, -12px);
-  font-size: clamp(3rem, 8vw, 6rem);
-  opacity: 0.08;
-  font-weight: 700;
-  line-height: 1;
-  pointer-events: none;
-  user-select: none;
 }
 
 .article-title {
@@ -357,20 +337,67 @@ html.dark .article-source {
   margin-top: 40px;
 }
 
-.article-anchor-wrapper {
-  margin-left: 20px;
+.toc-wrapper {
+  position: fixed;
+  left: 20px;
+  top: 80px;
+  z-index: 100;
 }
 
-.anchor-toggle {
-  border-radius: 6px;
+.toc-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-surface);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-size: 18px;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.toc-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.toc-panel {
+  margin-top: 8px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  width: 220px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.toc-link {
+  display: block;
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: 6px 0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  transition: color 0.2s;
+}
+
+.toc-link:hover {
+  color: var(--accent);
+}
+
+.toc-link.toc-level-2 {
+  padding-left: 12px;
+}
+
+.toc-link.toc-level-3 {
+  padding-left: 24px;
 }
 
 @media (max-width: 960px) {
-  .article-container {
-    display: block;
-  }
-
-  .article-anchor-wrapper {
+  .toc-wrapper {
     display: none;
   }
 }
@@ -380,5 +407,9 @@ html.dark .article-source {
   color: var(--text-muted);
   padding: 40px 0;
   font-size: 0.95rem;
+}
+
+.load-error .el-button {
+  margin-top: 16px;
 }
 </style>
