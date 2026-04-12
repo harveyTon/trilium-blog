@@ -76,6 +76,8 @@ func main() {
 		blog.WithBlogTitle(config.Config.BlogTitle),
 		blog.WithDomain(config.Config.Domain),
 		blog.WithPageSize(config.Config.ArticlesPerPage),
+		blog.WithImageProxyEnabled(config.Config.ImageProxy.Enabled),
+		blog.WithImageProxyBaseUrl(config.Config.ImageProxy.BaseURL),
 	)
 	apiHandler := handlers.NewAPIHandler(service)
 	r := setupRouter(apiHandler)
