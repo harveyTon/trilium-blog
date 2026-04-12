@@ -306,27 +306,36 @@ export default {
 
 .card-header {
   position: relative;
+  overflow: hidden;
 }
 
 .article-fword {
   position: absolute;
-  top: -28px;
-  left: -12px;
-  font-size: 6rem;
+  top: clamp(-14px, -3vw, -28px);
+  left: clamp(-20px, -2vw, -12px);
+  font-size: clamp(3rem, 8vw, 6rem);
   opacity: 0.08;
   font-weight: 700;
   line-height: 1;
+  pointer-events: none;
+  user-select: none;
 }
 
 .article-title {
   margin: 0 0 16px;
   line-height: 1.3;
   position: relative;
+  overflow-wrap: break-word;
 }
 
 .article-date,
 .article-source {
   color: var(--text-muted);
+}
+
+html.dark .article-date,
+html.dark .article-source {
+  color: var(--text-secondary);
 }
 
 .article-content {
