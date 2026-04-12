@@ -140,8 +140,8 @@ func (s *Service) GetPost(noteId string) (*Post, error) {
 	}
 
 	sanitized := s.sanitizeContent(content)
-	toc := s.extractTOC(sanitized)
-	processed := s.processContent(sanitized)
+	toc, modifiedHtml := s.extractTOC(sanitized)
+	processed := s.processContent(modifiedHtml)
 
 	return &Post{
 		NoteID:       note.NoteID,
@@ -191,10 +191,10 @@ func (s *Service) sanitizeContent(html string) string {
 	return string(p.SanitizeBytes([]byte(html)))
 }
 
-func (s *Service) extractTOC(html string) []TOCItem {
+func (s *Service) extractTOC(html string) ([]TOCItem, string) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
 	if err != nil {
-		return nil
+		return nil, html
 	}
 
 	var toc []TOCItem
@@ -218,7 +218,11 @@ func (s *Service) extractTOC(html string) []TOCItem {
 		return len(toc) < 20
 	})
 
-	return toc
+	result, _ := doc.Find("body").Html()
+	if result == "" {
+		return toc, html
+	}
+	return toc, strings.TrimSpace(result)
 }
 
 func (s *Service) processContent(html string) string {
