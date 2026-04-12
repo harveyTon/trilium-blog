@@ -234,20 +234,23 @@ func (s *Service) processContent(html string) string {
 			sel.SetAttr("src", "/api/assets/"+attachmentId)
 			return
 		}
-		if !s.imageProxyEnabled || s.imageProxyBaseUrl == "" {
+		if !s.imageProxyEnabled {
 			return
 		}
 		if !strings.HasPrefix(src, "http://") && !strings.HasPrefix(src, "https://") {
 			return
 		}
-		if strings.HasPrefix(src, s.imageProxyBaseUrl) {
+		if strings.Contains(src, "/api/assets/") || strings.Contains(src, "/assets/") {
 			return
 		}
-		if strings.HasPrefix(src, s.domain+"/api/assets/") || strings.HasPrefix(src, s.domain+"/assets/") {
+		if s.imageProxyBaseUrl != "" {
+			if strings.HasPrefix(src, s.imageProxyBaseUrl) {
+				return
+			}
+			sel.SetAttr("src", s.imageProxyBaseUrl+"?url="+url.QueryEscape(src))
 			return
 		}
-		proxiedSrc := s.imageProxyBaseUrl + "?url=" + url.QueryEscape(src)
-		sel.SetAttr("src", proxiedSrc)
+		sel.SetAttr("src", "/api/imageproxy?url="+url.QueryEscape(src))
 	})
 
 	languageMap := map[string]string{

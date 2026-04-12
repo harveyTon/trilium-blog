@@ -28,6 +28,7 @@ func setupRouter(apiHandler *handlers.APIHandler) *gin.Engine {
 		api.GET("/posts", apiHandler.ListPosts)
 		api.GET("/posts/:noteId", apiHandler.GetPost)
 		api.GET("/assets/:attachmentId", apiHandler.GetAsset)
+		api.GET("/imageproxy", apiHandler.ImageProxy)
 	}
 	r.GET("/sitemap.xml", apiHandler.Sitemap)
 	r.GET("/robots.txt", apiHandler.Robots)

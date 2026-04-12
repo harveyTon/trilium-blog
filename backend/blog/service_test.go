@@ -20,6 +20,12 @@ func TestProcessContent_ImageProxy(t *testing.T) {
 		domain:            "https://blog.example.com",
 	}
 
+	svcInternal := &Service{
+		imageProxyEnabled: true,
+		imageProxyBaseUrl: "",
+		domain:            "https://blog.example.com",
+	}
+
 	tests := []struct {
 		name      string
 		svc       *Service
@@ -89,6 +95,41 @@ func TestProcessContent_ImageProxy(t *testing.T) {
 			html:      `<img src="https://example.com/img.jpg?size=large"/>`,
 			checkURL:  base + "?url=",
 			expectURL: base + "?url=",
+		},
+		{
+			name:      "internal fallback: external image uses /api/imageproxy when enabled but no baseUrl",
+			svc:       svcInternal,
+			html:      `<img src="https://external.com/photo.jpg"/>`,
+			checkURL:  `/api/imageproxy?url=`,
+			expectURL: `/api/imageproxy?url=`,
+		},
+		{
+			name:      "internal fallback: relative URL unchanged when proxy enabled with no baseUrl",
+			svc:       svcInternal,
+			html:      `<img src="/local/img.png"/>`,
+			checkURL:  `src="/local/img.png"`,
+			expectURL: `src="/local/img.png"`,
+		},
+		{
+			name:      "internal fallback: attachment still goes to /api/assets/",
+			svc:       svcInternal,
+			html:      `<img src="/attachments/abc123.png"/>`,
+			checkURL:  `/api/assets/abc123.png`,
+			expectURL: `/api/assets/abc123.png`,
+		},
+		{
+			name:      "internal fallback: internal /api/assets/ URL unchanged",
+			svc:       svcInternal,
+			html:      `<img src="https://blog.example.com/api/assets/xyz.png"/>`,
+			checkURL:  `src="https://blog.example.com/api/assets/xyz.png"`,
+			expectURL: `src="https://blog.example.com/api/assets/xyz.png"`,
+		},
+		{
+			name:      "internal fallback: proxy base URL unchanged to avoid loop",
+			svc:       svcInternal,
+			html:      `<img src="/api/imageproxy?url=https://other.com/img.jpg"/>`,
+			checkURL:  `/api/imageproxy?url=`,
+			expectURL: `/api/imageproxy?url=`,
 		},
 	}
 
