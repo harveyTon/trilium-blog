@@ -12,13 +12,14 @@
     <div v-else class="article-list">
       <h3 class="article-latest">最新文章</h3>
       <el-empty v-if="!posts.length" description="暂无已发布文章" />
+      <div v-if="fetchError" class="fetch-error">{{ fetchError }}</div>
       <article
         v-for="post in posts"
         :key="post.noteId"
         class="article-item"
       >
         <div class="article-beici">
-          {{ post.title.charAt(0).toUpperCase() }}
+          {{ post.title ? post.title.charAt(0).toUpperCase() : '' }}
         </div>
         <h2 class="article-title">
           <router-link :to="{ name: 'Article', params: { noteId: post.noteId } }">
@@ -65,6 +66,7 @@ export default {
     const siteStore = useSiteStore();
     const posts = ref([]);
     const loading = ref(true);
+    const fetchError = ref(null);
     const currentPage = ref(1);
     const pagination = ref({
       page: 1,
@@ -75,6 +77,7 @@ export default {
 
     const loadPosts = async () => {
       loading.value = true;
+      fetchError.value = null;
       try {
         const response = await fetchPosts(currentPage.value);
         posts.value = response.items;
@@ -84,6 +87,9 @@ export default {
           total: response.total,
           totalPages: response.totalPages,
         };
+      } catch {
+        fetchError.value = "加载失败，请检查网络后重试";
+        posts.value = [];
       } finally {
         loading.value = false;
       }
@@ -115,6 +121,7 @@ export default {
     return {
       posts,
       loading,
+      fetchError,
       currentPage,
       pagination,
       handleCurrentChange,
@@ -131,7 +138,7 @@ export default {
 }
 
 a {
-  color: #333;
+  color: var(--text-primary);
   text-decoration: none;
 }
 
@@ -150,7 +157,7 @@ a {
   position: absolute;
   width: 50px;
   height: 1px;
-  background: rgba(51, 51, 51, 0.2);
+  background: var(--border-color);
   bottom: 0;
   left: calc(50% - 25px);
 }
@@ -158,9 +165,9 @@ a {
 .article-list {
   display: flex;
   flex-direction: column;
-  box-shadow: 0 0 12px rgba(0, 0, 0, 0.12);
-  background-color: #ffffff;
-  padding: 100px 200px;
+  box-shadow: 0 0 12px var(--border-color);
+  background-color: var(--bg-surface);
+  padding: clamp(40px, 8vw, 100px) clamp(20px, 15vw, 200px);
   min-height: 400px;
 }
 
@@ -168,7 +175,8 @@ a {
   display: flex;
   flex-direction: column;
   position: relative;
-  margin-bottom: 100px;
+  overflow: hidden;
+  margin-bottom: clamp(40px, 8vw, 100px);
 }
 
 .article-item:last-of-type {
@@ -177,18 +185,20 @@ a {
 
 .article-beici {
   position: absolute;
-  top: -50px;
-  left: -80px;
-  font-size: 8rem;
+  top: -20px;
+  left: 0;
+  font-size: clamp(3rem, 10vw, 8rem);
   opacity: 0.08;
   font-weight: bold;
   z-index: 0;
   pointer-events: none;
+  line-height: 1;
+  user-select: none;
 }
 
 .article-title {
   margin-bottom: 20px;
-  font-size: 2rem;
+  font-size: clamp(1.3rem, 4vw, 2rem);
   line-height: 1.4;
   position: relative;
   font-weight: bold;
@@ -196,15 +206,15 @@ a {
 
 .article-info {
   margin-bottom: 24px;
-  color: #888888;
+  color: var(--text-secondary);
 }
 
 .article-more a {
-  background: #2c3e50;
-  color: #fff;
+  background: var(--bg-header-footer);
+  color: var(--text-inverse);
   padding: 13px 40px;
   display: inline-block;
-  border: 1px solid #2c3e50;
+  border: 1px solid var(--bg-header-footer);
   font-size: 16px;
   border-radius: 6px;
 }
@@ -217,40 +227,10 @@ a {
   align-self: center;
 }
 
-@media (max-width: 768px) {
-  .article-list {
-    padding: 30px 20px;
-  }
-
-  .article-item {
-    margin-bottom: 56px;
-  }
-
-  .article-beici {
-    left: 0;
-    top: -28px;
-    font-size: 4rem;
-  }
-
-  .article-title {
-    font-size: 1.5rem;
-  }
-}
-
-html.dark .article-list {
-  background-color: #1f1f1f;
-}
-
-html.dark .article-title a,
-html.dark .article-latest {
-  color: #f5f5f5;
-}
-
-html.dark .article-info {
-  color: #bdbdbd;
-}
-
-html.dark .article-latest::after {
-  background: rgba(255, 255, 255, 0.25);
+.fetch-error {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 0;
+  font-size: 0.95rem;
 }
 </style>

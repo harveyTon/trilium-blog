@@ -40,11 +40,11 @@ export default {
 
 h1 {
   font-size: 72px;
-  color: #409eff;
+  color: var(--accent);
 }
 
 a {
-  color: #409eff;
+  color: var(--accent);
   text-decoration: none;
 }
 </style>
