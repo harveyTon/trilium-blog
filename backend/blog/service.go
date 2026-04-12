@@ -240,7 +240,7 @@ func (s *Service) processContent(html string) string {
 		if !strings.HasPrefix(src, "http://") && !strings.HasPrefix(src, "https://") {
 			return
 		}
-		if strings.Contains(src, "/api/assets/") || strings.Contains(src, "/assets/") {
+		if isInternalAssetPath(src, s.domain) {
 			return
 		}
 		if s.imageProxyBaseUrl != "" {
@@ -277,6 +277,26 @@ func (s *Service) processContent(html string) string {
 		return html
 	}
 	return strings.TrimSpace(result)
+}
+
+func isInternalAssetPath(src, domain string) bool {
+	if strings.HasPrefix(src, "/api/assets/") || strings.HasPrefix(src, "/assets/") || strings.HasPrefix(src, "/api/imageproxy") {
+		return true
+	}
+	if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
+		parsed, err := url.Parse(src)
+		if err != nil {
+			return false
+		}
+		domainParsed, err := url.Parse(domain)
+		if err == nil && parsed.Host == domainParsed.Host {
+			path := parsed.Path
+			if strings.HasPrefix(path, "/api/assets/") || strings.HasPrefix(path, "/assets/") || strings.HasPrefix(path, "/api/imageproxy") {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func generateID(text string) string {
