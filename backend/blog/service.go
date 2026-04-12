@@ -224,13 +224,8 @@ func (s *Service) processContent(html string) string {
 	doc.Find("img").Each(func(i int, sel *goquery.Selection) {
 		src, _ := sel.Attr("src")
 		if strings.HasPrefix(src, "/attachments/") {
-			imgProxy := ""
-			if s.imageProxy != "" {
-				imgProxy = s.imageProxy + src
-			} else {
-				imgProxy = s.domain + "/api/imageproxy/" + src
-			}
-			sel.SetAttr("src", imgProxy)
+			attachmentId := strings.TrimPrefix(src, "/attachments/")
+			sel.SetAttr("src", "/api/assets/"+attachmentId)
 		}
 	})
 
