@@ -949,16 +949,25 @@ func (s *Service) processContent(html string) (string, []CodeBlock) {
 }
 
 func detectCodeBlockLanguage(codeText, className string) (string, string) {
-	if languageID, detectedBy, ok := normalizeCodeLanguageClass(className); ok {
-		return languageID, detectedBy
+	fallbackLanguageID, fallbackDetectedBy, hasFallback := normalizeCodeLanguageClass(className)
+	if hasFallback {
+		if resolvedLanguageID := resolveChromaLanguageID(fallbackLanguageID); resolvedLanguageID != "" {
+			return resolvedLanguageID, fallbackDetectedBy
+		}
 	}
 
 	if strings.TrimSpace(stripControlRunes(codeText)) == "" {
+		if hasFallback {
+			return fallbackLanguageID, fallbackDetectedBy
+		}
 		return "plaintext", "fallback"
 	}
 
 	lexer := lexers.Analyse(codeText)
 	if lexer == nil {
+		if hasFallback {
+			return fallbackLanguageID, fallbackDetectedBy
+		}
 		return "plaintext", "fallback"
 	}
 
@@ -967,10 +976,27 @@ func detectCodeBlockLanguage(codeText, className string) (string, string) {
 		languageID = normalizeLanguageID(lexer.Config().Aliases[0])
 	}
 	if languageID == "" {
+		if hasFallback {
+			return fallbackLanguageID, fallbackDetectedBy
+		}
 		return "plaintext", "fallback"
 	}
 
 	return languageID, "analyse"
+}
+
+func resolveChromaLanguageID(languageID string) string {
+	lexer := lexers.Get(languageID)
+	if lexer == nil {
+		return ""
+	}
+
+	resolvedLanguageID := normalizeLanguageID(lexer.Config().Name)
+	if resolvedLanguageID == "" && len(lexer.Config().Aliases) > 0 {
+		resolvedLanguageID = normalizeLanguageID(lexer.Config().Aliases[0])
+	}
+
+	return resolvedLanguageID
 }
 
 func normalizeCodeLanguageClass(className string) (string, string, bool) {
@@ -1003,6 +1029,19 @@ func normalizeLanguageID(value string) string {
 	normalized := strings.ToLower(strings.TrimSpace(value))
 	normalized = strings.ReplaceAll(normalized, "_", "-")
 	normalized = strings.ReplaceAll(normalized, " ", "-")
+	for _, prefix := range []string{
+		"text-x-",
+		"application-x-",
+		"application-",
+		"text-",
+		"source-",
+		"source.",
+	} {
+		if strings.HasPrefix(normalized, prefix) {
+			normalized = strings.TrimPrefix(normalized, prefix)
+			break
+		}
+	}
 
 	switch normalized {
 	case "", "text", "plain-text", "plain", "fallback":

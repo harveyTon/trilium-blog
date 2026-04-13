@@ -1,5 +1,5 @@
 <template>
-  <div class="article-content" v-html="contentHtml"></div>
+  <div ref="root" class="article-content" v-html="contentHtml"></div>
 </template>
 
 <script>
@@ -9,6 +9,11 @@ export default {
     contentHtml: {
       type: String,
       default: "",
+    },
+  },
+  methods: {
+    getRootElement() {
+      return this.$refs.root ?? null;
     },
   },
 };

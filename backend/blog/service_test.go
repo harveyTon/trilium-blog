@@ -260,7 +260,7 @@ func TestProcessContent_ExtractsCodeBlockMetadataInOrder(t *testing.T) {
 func TestProcessContent_NormalizesKnownLanguageAliases(t *testing.T) {
 	svc := &Service{}
 
-	processed, codeBlocks := svc.processContent(`<pre><code class="language-application-javascript-env-backend">const answer = 42;</code></pre>`)
+	processed, codeBlocks := svc.processContent(`<pre><code class="language-application-javascript-env-backend">const answer = 42;\nconsole.log(answer);</code></pre>`)
 
 	if !strings.Contains(processed, "language-javascript") {
 		t.Fatalf("expected alias class to normalize to language-javascript, got %q", processed)
@@ -273,6 +273,28 @@ func TestProcessContent_NormalizesKnownLanguageAliases(t *testing.T) {
 	}
 	if codeBlocks[0].DetectedBy != "alias" {
 		t.Fatalf("expected detectedBy alias, got %q", codeBlocks[0].DetectedBy)
+	}
+}
+
+func TestProcessContent_NormalizesTextXLanguageClasses(t *testing.T) {
+	svc := &Service{}
+
+	processed, codeBlocks := svc.processContent(`<pre><code class="language-text-x-java">public class Demo {\n  public static void main(String[] args) {\n    System.out.println("hi");\n  }\n}</code></pre>`)
+
+	if !strings.Contains(processed, "language-java") {
+		t.Fatalf("expected class to normalize to language-java, got %q", processed)
+	}
+	if len(codeBlocks) != 1 {
+		t.Fatalf("expected 1 code block, got %d", len(codeBlocks))
+	}
+	if codeBlocks[0].LanguageID != "java" {
+		t.Fatalf("expected normalized language id java, got %q", codeBlocks[0].LanguageID)
+	}
+	if codeBlocks[0].LanguageLabel != "Java" {
+		t.Fatalf("expected friendly label Java, got %q", codeBlocks[0].LanguageLabel)
+	}
+	if codeBlocks[0].DetectedBy != "class" {
+		t.Fatalf("expected detectedBy class, got %q", codeBlocks[0].DetectedBy)
 	}
 }
 

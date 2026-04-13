@@ -1,58 +1,53 @@
 import { Fancybox } from "@fancyapps/ui";
+import { createApp } from "vue";
+import ArticleCodeBlock from "../components/article/ArticleCodeBlock.vue";
 
-function injectCodeToolbar(codeElement, language) {
-  const pre = codeElement.closest("pre");
-  if (!pre || pre.dataset.enhanced === "true") return;
-
-  const toolbar = document.createElement("div");
-  toolbar.className = "code-toolbar";
-
-  const langLabel = document.createElement("span");
-  langLabel.className = "code-language";
-  langLabel.textContent = language || "text";
-
-  const actions = document.createElement("div");
-  actions.className = "code-actions";
-
-  const copyButton = document.createElement("button");
-  copyButton.type = "button";
-  copyButton.className = "code-action-button";
-  copyButton.textContent = "复制";
-  copyButton.addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(codeElement.textContent || "");
-      copyButton.textContent = "已复制";
-      window.setTimeout(() => {
-        copyButton.textContent = "复制";
-      }, 1200);
-    } catch {
-      copyButton.textContent = "失败";
-      window.setTimeout(() => {
-        copyButton.textContent = "复制";
-      }, 1200);
-    }
-  });
-
-  const collapseButton = document.createElement("button");
-  collapseButton.type = "button";
-  collapseButton.className = "code-action-button";
-  collapseButton.textContent = "折叠";
-  collapseButton.addEventListener("click", () => {
-    const collapsed = pre.dataset.collapsed === "true";
-    pre.dataset.collapsed = collapsed ? "false" : "true";
-    collapseButton.textContent = collapsed ? "折叠" : "展开";
-  });
-
-  actions.appendChild(copyButton);
-  actions.appendChild(collapseButton);
-  toolbar.appendChild(langLabel);
-  toolbar.appendChild(actions);
-  pre.parentNode.insertBefore(toolbar, pre);
-  pre.dataset.enhanced = "true";
+function friendlyLabelFromId(languageId) {
+  switch (languageId) {
+    case "javascript":
+      return "JavaScript";
+    case "typescript":
+      return "TypeScript";
+    case "bash":
+      return "Shell";
+    case "go":
+      return "Go";
+    case "json":
+      return "JSON";
+    case "plaintext":
+    default:
+      return "Code";
+  }
 }
 
-function setupGallery() {
-  document.querySelectorAll(".article-content img").forEach((img) => {
+function normalizeLanguageId(languageId) {
+  if (!languageId) return "plaintext";
+  const normalized = String(languageId).trim().toLowerCase();
+  if (!normalized || normalized === "text") return "plaintext";
+  if (normalized === "shell") return "bash";
+  return normalized;
+}
+
+function fallbackCodeBlockMeta(preElement, index) {
+  const codeElement = preElement.querySelector("code");
+  const className = codeElement?.className || "";
+  const languageClass = className
+    .split(/\s+/)
+    .find((token) => token.startsWith("language-"));
+  const languageId = normalizeLanguageId(
+    languageClass ? languageClass.replace("language-", "") : "plaintext"
+  );
+
+  return {
+    index,
+    languageId,
+    languageLabel: friendlyLabelFromId(languageId),
+    showLineNumbers: true,
+  };
+}
+
+function setupGallery(root) {
+  root.querySelectorAll("img").forEach((img) => {
     img.loading = "lazy";
     const parent = img.parentElement;
     if (!parent) return;
@@ -69,11 +64,15 @@ function setupGallery() {
     parent.target = "_blank";
     parent.dataset.fancybox = "gallery";
   });
+
+  if (typeof Fancybox.unbind === "function") {
+    Fancybox.unbind("[data-fancybox]");
+  }
   Fancybox.bind("[data-fancybox]", {});
 }
 
-function enhanceImageGroups() {
-  document.querySelectorAll(".article-content p, .article-content figure, .article-content div").forEach((container) => {
+function enhanceImageGroups(root) {
+  root.querySelectorAll("p, figure, div").forEach((container) => {
     const images = container.querySelectorAll(":scope > a[data-fancybox] > img, :scope > img");
     if (images.length >= 2) {
       container.classList.add("image-gallery-group");
@@ -81,35 +80,54 @@ function enhanceImageGroups() {
   });
 }
 
-export function useArticleEnhancements({ hljs, applyHighlightTheme }) {
-  const enhanceCodeBlocks = () => {
-    applyHighlightTheme();
-    document.querySelectorAll("pre code").forEach((el) => {
-      const code = el.textContent ?? "";
-      const languageMatch = el.className.match(/language-(\S+)/);
-      let resolvedLanguage = "text";
-      if (languageMatch) {
-        resolvedLanguage = languageMatch[1];
-        el.innerHTML = hljs.highlight(code, {
-          language: languageMatch[1],
-        }).value;
-      } else {
-        const result = hljs.highlightAuto(code);
-        resolvedLanguage = result.language || "text";
-        el.innerHTML = result.value;
-      }
-      el.classList.add("hljs");
-      injectCodeToolbar(el, resolvedLanguage);
+export function useArticleEnhancements() {
+  const codeBlockApps = [];
+
+  const cleanupCodeBlocks = () => {
+    while (codeBlockApps.length) {
+      const mountedApp = codeBlockApps.pop();
+      mountedApp?.app?.unmount();
+    }
+  };
+
+  const enhanceCodeBlocks = ({ root, codeBlocks = [] }) => {
+    cleanupCodeBlocks();
+
+    const preElements = root.querySelectorAll("pre");
+    preElements.forEach((preElement, index) => {
+      const codeElement = preElement.querySelector("code");
+      if (!codeElement) return;
+
+      const meta = codeBlocks[index] || fallbackCodeBlockMeta(preElement, index);
+      const mountPoint = document.createElement("div");
+      mountPoint.className = "article-code-block-host";
+
+      const app = createApp(ArticleCodeBlock, {
+        code: codeElement.textContent ?? "",
+        languageId: normalizeLanguageId(meta.languageId),
+        languageLabel: meta.languageLabel || friendlyLabelFromId(meta.languageId),
+        showLineNumbers: Boolean(meta.showLineNumbers),
+      });
+
+      preElement.replaceWith(mountPoint);
+      app.mount(mountPoint);
+      codeBlockApps.push({ app, mountPoint });
     });
   };
 
-  const enhanceArticleContent = () => {
-    enhanceCodeBlocks();
-    setupGallery();
-    enhanceImageGroups();
+  const cleanupEnhancements = () => {
+    cleanupCodeBlocks();
+  };
+
+  const enhanceArticleContent = ({ root, codeBlocks = [] }) => {
+    if (!root) return;
+    enhanceCodeBlocks({ root, codeBlocks });
+    setupGallery(root);
+    enhanceImageGroups(root);
   };
 
   return {
     enhanceArticleContent,
+    cleanupEnhancements,
   };
 }

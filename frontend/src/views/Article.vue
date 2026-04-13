@@ -31,7 +31,7 @@
           <main class="article-main">
             <ArticleHeader :title="post.title" :formatted-date="formatDate(post.dateModified)" />
             <ArticleSummaryBlock :summary="summaryState.ai" :enabled="summaryState.aiEnabled" />
-            <ArticleContent :content-html="post.contentHtml" />
+            <ArticleContent ref="articleContentRef" :content-html="post.contentHtml" />
             <SourceLinkBlock :page-url="post.pageUrl" />
 
             <div v-if="site.comments.enabled" class="article-comments">
@@ -56,14 +56,6 @@ import { ElButton } from "element-plus";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import Artalk from "artalk";
 import "artalk/dist/Artalk.css";
-import hljs from "highlight.js/lib/core";
-import javascript from "highlight.js/lib/languages/javascript";
-import bash from "highlight.js/lib/languages/bash";
-import "highlight.js/styles/atom-one-dark.css";
-import "highlight.js/styles/atom-one-light.css";
-
-hljs.registerLanguage("javascript", javascript);
-hljs.registerLanguage("bash", bash);
 import { storeToRefs } from "pinia";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
@@ -71,9 +63,7 @@ import { fetchPost } from "../api/blog";
 import { fetchPostSummary, normalizeSummaryPayload } from "../api/summary";
 import ReadingProgressBar from "../components/app/ReadingProgressBar.vue";
 import ArticleContent from "../components/article/ArticleContent.vue";
-import CodeBlockEnhancer from "../components/article/CodeBlockEnhancer.vue";
 import ArticleHeader from "../components/article/ArticleHeader.vue";
-import ImageGalleryGroup from "../components/article/ImageGalleryGroup.vue";
 import ArticleSummaryBlock from "../components/article/ArticleSummaryBlock.vue";
 import ArticleTOC from "../components/article/ArticleTOC.vue";
 import SourceLinkBlock from "../components/article/SourceLinkBlock.vue";
@@ -86,9 +76,7 @@ export default {
   components: {
     ElButton,
     ArticleContent,
-    CodeBlockEnhancer,
     ArticleHeader,
-    ImageGalleryGroup,
     ArticleSummaryBlock,
     ArticleTOC,
     ReadingProgressBar,
@@ -104,6 +92,7 @@ export default {
     const loadError = ref(false);
     const activeHeading = ref("");
     const artalkContainer = ref(null);
+    const articleContentRef = ref(null);
     const summaryState = computed(() => normalizeSummaryPayload(summarySource.value || post.value));
     const tocCollapsed = ref(false);
     const { progress: readingProgress, updateReadingProgress } = useReadingProgress();
@@ -120,25 +109,7 @@ export default {
       return new Date(dateString).toLocaleDateString(undefined, options);
     };
 
-    const applyHighlightTheme = () => {
-      const dark = isDarkMode();
-      for (let i = document.styleSheets.length - 1; i >= 0; i--) {
-        const sheet = document.styleSheets[i];
-        try {
-          const href = sheet.href || "";
-          if (href.includes("atom-one-dark.css")) {
-            sheet.disabled = !dark;
-          } else if (href.includes("atom-one-light.css")) {
-            sheet.disabled = dark;
-          }
-        } catch {}
-      }
-    };
-
-    const { enhanceArticleContent } = useArticleEnhancements({
-      hljs,
-      applyHighlightTheme,
-    });
+    const { enhanceArticleContent, cleanupEnhancements } = useArticleEnhancements();
 
     const destroyComments = () => {
       if (artalkInstance) {
@@ -166,7 +137,10 @@ export default {
         headingObserver.disconnect();
         headingObserver = null;
       }
-      const headings = document.querySelectorAll(".article-content h1, .article-content h2, .article-content h3");
+      const root = articleContentRef.value?.getRootElement?.();
+      if (!root) return;
+
+      const headings = root.querySelectorAll("h1, h2, h3");
       if (!headings.length) return;
 
       headingObserver = new IntersectionObserver(
@@ -185,7 +159,12 @@ export default {
 
     const enhanceContent = async () => {
       await nextTick();
-      enhanceArticleContent();
+      const root = articleContentRef.value?.getRootElement?.();
+      if (!root || !post.value) return;
+      enhanceArticleContent({
+        root,
+        codeBlocks: post.value.codeBlocks || [],
+      });
       initComments();
       setupHeadingObserver();
       updateReadingProgress();
@@ -275,6 +254,7 @@ export default {
       activeHeading.value = "";
       tocCollapsed.value = window.innerWidth <= 1024;
       stopSummaryPolling();
+      cleanupEnhancements();
       try {
         const fetchedPost = await fetchPost(route.params.noteId);
         post.value = fetchedPost;
@@ -286,6 +266,7 @@ export default {
             console.error("Failed to fetch initial post summary:", error);
           }
         }
+        loading.value = false;
         await enhanceContent();
         syncTitle();
         pollSummaryStatus(route.params.noteId);
@@ -306,7 +287,6 @@ export default {
         if (artalkInstance) {
           artalkInstance.setDarkMode(isDarkMode());
         }
-        applyHighlightTheme();
       });
       observer.observe(document.documentElement, {
         attributes: true,
@@ -322,6 +302,7 @@ export default {
 
     onUnmounted(() => {
       stopSummaryPolling();
+      cleanupEnhancements();
       destroyComments();
       if (darkModeObserver) darkModeObserver.disconnect();
       if (headingObserver) headingObserver.disconnect();
@@ -340,6 +321,7 @@ export default {
       tocCollapsed,
       readingProgress,
       artalkContainer,
+      articleContentRef,
       formatDate,
       loadPost,
       scrollToHeading,
@@ -628,55 +610,26 @@ html.dark .article-content blockquote {
 }
 
 /* ── Code ── */
-.article-content pre {
+.article-code-block-host {
+  display: block;
+}
+
+.article-content pre:not(.shiki) {
   margin: 24px 0 32px;
-  padding: 20px 24px;
-  border-radius: var(--radius-md);
-  background: #0f1722;
-  color: #e6edf3;
+  padding: 18px 22px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface) 90%, white 10%);
+  color: var(--text);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
-  /* Let pre be as wide as its container allows, not more */
+  border: 1px solid var(--border-soft);
   box-sizing: border-box;
 }
 
-.code-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 18px 0 8px;
-  color: var(--text-faint);
-  font-size: 12px;
-}
-
-.code-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.code-action-button {
-  border: 1px solid var(--border-soft);
-  background: var(--surface);
-  color: var(--text-soft);
-  border-radius: 999px;
-  padding: 4px 10px;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.article-content pre[data-collapsed="true"] {
-  max-height: 96px;
-  overflow: hidden;
-}
-
-.article-content pre code {
+.article-content pre:not(.shiki) code {
   font-family: var(--mono);
-  font-size: 14px;
-  line-height: 1.65;
+  font-size: 15px;
+  line-height: 1.8;
   background: none;
   padding: 0;
   border: none;
@@ -686,18 +639,18 @@ html.dark .article-content blockquote {
 
 .article-content :not(pre) > code {
   font-family: var(--mono);
-  font-size: 0.9em;
-  padding: 0.18em 0.42em;
+  font-size: 0.88em;
+  padding: 0.16em 0.4em;
   border-radius: 6px;
-  background: #f2f5f8;
-  color: #203040;
-  border: 1px solid #e1e7ee;
+  background: color-mix(in srgb, var(--surface-muted) 82%, white 18%);
+  color: color-mix(in srgb, var(--text) 86%, var(--text-soft) 14%);
+  border: 1px solid color-mix(in srgb, var(--border-soft) 80%, transparent 20%);
 }
 
 html.dark .article-content :not(pre) > code {
-  background: #1f2836;
-  color: #c0ccda;
-  border-color: #2e3a4a;
+  background: color-mix(in srgb, var(--surface-muted) 68%, black 32%);
+  color: color-mix(in srgb, var(--text) 88%, white 12%);
+  border-color: color-mix(in srgb, var(--border-soft) 72%, transparent 28%);
 }
 
 .article-content hr {
