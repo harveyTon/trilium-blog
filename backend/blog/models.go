@@ -7,9 +7,24 @@ type Post struct {
 	Title        string    `json:"title"`
 	DateModified string    `json:"dateModified"`
 	Summary      string    `json:"summary,omitempty"`
+	Summaries    *Summaries `json:"summaries,omitempty"`
 	TOC          []TOCItem `json:"toc,omitempty"`
 	ContentHTML  string    `json:"contentHtml,omitempty"`
 	PageURL      string    `json:"pageUrl,omitempty"`
+}
+
+type SummaryEntry struct {
+	Type      string `json:"type,omitempty"`
+	Status    string `json:"status,omitempty"`
+	Text      string `json:"text,omitempty"`
+	UpdatedAt string `json:"updatedAt,omitempty"`
+	Error     string `json:"error,omitempty"`
+}
+
+type Summaries struct {
+	AI       *SummaryEntry `json:"ai,omitempty"`
+	Code     *SummaryEntry `json:"code,omitempty"`
+	Fallback string        `json:"fallback,omitempty"`
 }
 
 type TOCItem struct {

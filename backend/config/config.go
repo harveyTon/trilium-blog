@@ -12,6 +12,18 @@ type ImageProxyConfig struct {
 	BaseURL string
 }
 
+type AISummaryConfig struct {
+	Enabled       bool
+	BaseURL       string
+	APIKey        string
+	Model         string
+	Prompt        string
+	Mode          string
+	Concurrency   int
+	RateLimitMs   int
+	DatabasePath  string
+}
+
 type AppConfig struct {
 	TriliumApiUrl   string
 	TriliumToken    string
@@ -20,6 +32,7 @@ type AppConfig struct {
 	BlogTitle       string
 	Domain          string
 	ImageProxy      ImageProxyConfig
+	AISummary       AISummaryConfig
 }
 
 var Config AppConfig
@@ -35,6 +48,17 @@ func LoadConfig() {
 		ImageProxy: ImageProxyConfig{
 			Enabled: getEnvBool("IMAGE_PROXY_ENABLED", false),
 			BaseURL: getEnv("IMAGE_PROXY_BASE_URL", ""),
+		},
+		AISummary: AISummaryConfig{
+			Enabled:      getEnvBool("AI_SUMMARY_ENABLED", false),
+			BaseURL:      getEnv("AI_SUMMARY_BASE_URL", ""),
+			APIKey:       getEnv("AI_SUMMARY_API_KEY", ""),
+			Model:        getEnv("AI_SUMMARY_MODEL", ""),
+			Prompt:       getEnv("AI_SUMMARY_PROMPT", "Summarize the article for a blog reader in concise Chinese."),
+			Mode:         getEnv("AI_SUMMARY_MODE", "code"),
+			Concurrency:  getEnvInt("AI_SUMMARY_CONCURRENCY", 2),
+			RateLimitMs:  getEnvInt("AI_SUMMARY_RATE_LIMIT_MS", 1200),
+			DatabasePath: getEnv("AI_SUMMARY_DATABASE_PATH", "./data/summaries.db"),
 		},
 	}
 

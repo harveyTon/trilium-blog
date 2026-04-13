@@ -72,6 +72,25 @@ func main() {
 	config.LoadConfig()
 
 	etapiClient := etapi.NewClient(config.Config.TriliumApiUrl, config.Config.TriliumToken)
+	summaryStore, err := blog.NewSummaryStoreDB(config.Config.AISummary.DatabasePath)
+	if err != nil {
+		logger.Fatal("Failed to initialize summary store", err)
+	}
+	defer summaryStore.Close()
+
+	var aiQueue *blog.AISummaryQueue
+	if config.Config.AISummary.Enabled {
+		aiQueue = blog.NewAISummaryQueue(
+			summaryStore,
+			config.Config.AISummary.BaseURL,
+			config.Config.AISummary.APIKey,
+			config.Config.AISummary.Model,
+			config.Config.AISummary.Prompt,
+			config.Config.AISummary.Concurrency,
+			config.Config.AISummary.RateLimitMs,
+		)
+	}
+
 	service := blog.NewService(
 		etapiClient,
 		&blog.NoopStore{},
@@ -81,6 +100,9 @@ func main() {
 		blog.WithPageSize(config.Config.ArticlesPerPage),
 		blog.WithImageProxyEnabled(config.Config.ImageProxy.Enabled),
 		blog.WithImageProxyBaseUrl(config.Config.ImageProxy.BaseURL),
+		blog.WithSummaryStore(summaryStore),
+		blog.WithAISummaryQueue(aiQueue),
+		blog.WithAISummaryEnabled(config.Config.AISummary.Enabled),
 	)
 	apiHandler := handlers.NewAPIHandler(service)
 	r := setupRouter(apiHandler)

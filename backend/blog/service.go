@@ -20,12 +20,15 @@ type Store interface {
 type Service struct {
 	etapiClient       *etapi.Client
 	store             Store
+	summaryStore      SummaryStore
+	aiQueue           *AISummaryQueue
 	blogName          string
 	blogTitle         string
 	domain            string
 	pageSize          int
 	imageProxyEnabled bool
 	imageProxyBaseUrl string
+	aiEnabled         bool
 }
 
 type ServiceOption func(*Service)
@@ -52,6 +55,18 @@ func WithImageProxyEnabled(enabled bool) ServiceOption {
 
 func WithImageProxyBaseUrl(baseUrl string) ServiceOption {
 	return func(s *Service) { s.imageProxyBaseUrl = baseUrl }
+}
+
+func WithSummaryStore(store SummaryStore) ServiceOption {
+	return func(s *Service) { s.summaryStore = store }
+}
+
+func WithAISummaryQueue(queue *AISummaryQueue) ServiceOption {
+	return func(s *Service) { s.aiQueue = queue }
+}
+
+func WithAISummaryEnabled(enabled bool) ServiceOption {
+	return func(s *Service) { s.aiEnabled = enabled }
 }
 
 func NewService(client *etapi.Client, store Store, opts ...ServiceOption) *Service {
@@ -141,6 +156,11 @@ func (s *Service) ListPosts(page int) (*PostList, error) {
 			summary := s.extractSummary(sanitized)
 			mu.Lock()
 			pagePosts[idx].Summary = summary
+			summaries, sumErr := s.ensureSummaries(pagePosts[idx].NoteID, content)
+			if sumErr == nil {
+				pagePosts[idx].Summaries = summaries
+				pagePosts[idx].Summary = preferredSummaryText(summaries, summary)
+			}
 			mu.Unlock()
 		}(i)
 	}
@@ -186,6 +206,11 @@ func (s *Service) SearchPosts(query string, preview bool, limit int) (*SearchRes
 		candidate, ok := isSearchMatch(note, content, query)
 		if !ok {
 			continue
+		}
+		summaries, sumErr := s.ensureSummaries(note.NoteID, content)
+		if sumErr == nil {
+			candidate.Post.Summaries = summaries
+			candidate.Post.Summary = preferredSummaryText(summaries, candidate.Post.Summary)
 		}
 		candidates = append(candidates, candidate)
 	}
@@ -238,6 +263,11 @@ func (s *Service) ListFeaturedPosts() ([]Post, error) {
 		content, err := s.etapiClient.GetNoteContent(note.NoteID)
 		if err == nil {
 			post.Summary = s.extractSummary(s.sanitizeContent(content))
+			summaries, sumErr := s.ensureSummaries(note.NoteID, content)
+			if sumErr == nil {
+				post.Summaries = summaries
+				post.Summary = preferredSummaryText(summaries, post.Summary)
+			}
 		}
 
 		posts = append(posts, post)
@@ -298,6 +328,11 @@ func (s *Service) GetPost(noteId string) (*Post, error) {
 	sanitized := s.sanitizeContent(content)
 	toc, modifiedHtml := s.extractTOC(sanitized)
 	processed := s.processContent(modifiedHtml)
+	summaryText := s.extractSummary(sanitized)
+	summaries, sumErr := s.ensureSummaries(note.NoteID, content)
+	if sumErr == nil {
+		summaryText = preferredSummaryText(summaries, summaryText)
+	}
 
 	return &Post{
 		NoteID:       note.NoteID,
@@ -306,6 +341,8 @@ func (s *Service) GetPost(noteId string) (*Post, error) {
 		ContentHTML:  processed,
 		TOC:          toc,
 		PageURL:      getPageURL(note.Attributes),
+		Summary:      summaryText,
+		Summaries:    summaries,
 	}, nil
 }
 
