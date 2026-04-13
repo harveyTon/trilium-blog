@@ -1,5 +1,5 @@
 <template>
-  <div class="reading-progress" aria-hidden="true">
+  <div class="reading-progress" :style="progressStyle" aria-hidden="true">
     <div class="reading-progress__bar" :style="{ width: `${progress}%` }"></div>
   </div>
 </template>
@@ -11,6 +11,18 @@ export default {
     progress: {
       type: Number,
       default: 0,
+    },
+    topOffset: {
+      type: Number,
+      default: null,
+    },
+  },
+  computed: {
+    progressStyle() {
+      if (typeof this.topOffset !== "number") {
+        return null;
+      }
+      return { top: `${this.topOffset}px` };
     },
   },
 };

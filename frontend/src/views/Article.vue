@@ -1,6 +1,6 @@
 <template>
   <div class="article">
-    <ReadingProgressBar :progress="readingProgress" />
+    <ReadingProgressBar :progress="readingProgress" :top-offset="isReadingMode ? 44 : null" />
     <el-skeleton :loading="loading" animated>
       <template #template>
         <el-skeleton-item
@@ -19,22 +19,65 @@
         />
       </template>
       <template #default>
-        <div v-if="post" :class="['article-shell', post.toc && post.toc.length >= 3 ? 'has-toc' : '']">
+        <div
+          v-if="post"
+          :class="[
+            'article-shell',
+            post.toc && post.toc.length >= 3 ? 'has-toc' : '',
+            readingModeClass,
+            `reading-width-${readingWidth}`,
+            `reading-density-${readingDensity}`,
+          ]"
+        >
+          <div v-if="isReadingMode" class="reading-topbar">
+            <button type="button" class="reading-topbar-link" @click="goHome">首页</button>
+            <div class="reading-topbar-actions">
+              <button type="button" class="reading-topbar-link" @click="toggleTocCollapsed()">
+                {{ tocCollapsed ? "目录" : "收起目录" }}
+              </button>
+              <button type="button" class="reading-topbar-link" @click="cycleWidth()">
+                {{ readingWidth === "comfortable" ? "宽度: 舒展" : "宽度: 紧凑" }}
+              </button>
+              <button type="button" class="reading-topbar-link" @click="cycleDensity()">
+                {{ readingDensity === "relaxed" ? "密度: 舒展" : "密度: 紧凑" }}
+              </button>
+              <button type="button" class="reading-topbar-link" @click="toggleTheme">主题</button>
+              <button type="button" class="reading-topbar-link is-exit" @click="exitReadingMode">
+                退出阅读
+              </button>
+            </div>
+          </div>
+
           <ArticleTOC
             :items="post.toc"
             :active-heading="activeHeading"
             :collapsed="tocCollapsed"
+            :reading-mode="isReadingMode"
             @scroll-to-heading="scrollToHeading"
-            @toggle-collapse="tocCollapsed = !tocCollapsed"
+            @toggle-collapse="toggleTocCollapsed()"
           />
 
           <main class="article-main">
-            <ArticleHeader :title="post.title" :formatted-date="formatDate(post.dateModified)" />
-            <ArticleSummaryBlock :summary="summaryState.ai" :enabled="summaryState.aiEnabled" />
-            <ArticleContent ref="articleContentRef" :content-html="post.contentHtml" />
-            <SourceLinkBlock :page-url="post.pageUrl" />
+            <ArticleHeader :title="post.title" :formatted-date="formatDate(post.dateModified)">
+              <template v-if="!isReadingMode" #actions>
+                <button type="button" class="reading-mode-trigger" @click="enterReadingMode">
+                  阅读模式
+                </button>
+              </template>
+            </ArticleHeader>
+            <ArticleSummaryBlock
+              v-if="!isReadingMode"
+              :summary="summaryState.ai"
+              :enabled="summaryState.aiEnabled"
+            />
+            <ArticleContent
+              ref="articleContentRef"
+              :content-html="post.contentHtml"
+              :reading-mode="isReadingMode"
+            />
+            <SourceLinkBlock v-if="!isReadingMode" :page-url="post.pageUrl" />
 
-            <div v-if="site.comments.enabled" class="article-comments">
+            <div v-if="site.comments.enabled && !isReadingMode" class="article-comments">
               <h2>评论</h2>
               <div ref="artalkContainer"></div>
             </div>
@@ -58,7 +101,7 @@ import Artalk from "artalk";
 import "artalk/dist/Artalk.css";
 import { storeToRefs } from "pinia";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { fetchPost } from "../api/blog";
 import { fetchPostSummary, normalizeSummaryPayload } from "../api/summary";
 import ReadingProgressBar from "../components/app/ReadingProgressBar.vue";
@@ -68,6 +111,7 @@ import ArticleSummaryBlock from "../components/article/ArticleSummaryBlock.vue";
 import ArticleTOC from "../components/article/ArticleTOC.vue";
 import SourceLinkBlock from "../components/article/SourceLinkBlock.vue";
 import { useArticleEnhancements } from "../composables/useArticleEnhancements";
+import { useArticleReadingMode } from "../composables/useArticleReadingMode";
 import { useReadingProgress } from "../composables/useReadingProgress";
 import { useSiteStore } from "../store";
 
@@ -84,6 +128,7 @@ export default {
   },
   setup() {
     const route = useRoute();
+    const router = useRouter();
     const siteStore = useSiteStore();
     const { site } = storeToRefs(siteStore);
     const post = ref(null);
@@ -94,8 +139,19 @@ export default {
     const artalkContainer = ref(null);
     const articleContentRef = ref(null);
     const summaryState = computed(() => normalizeSummaryPayload(summarySource.value || post.value));
-    const tocCollapsed = ref(false);
     const { progress: readingProgress, updateReadingProgress } = useReadingProgress();
+    const {
+      enabled: isReadingMode,
+      tocCollapsed,
+      width: readingWidth,
+      density: readingDensity,
+      readingModeClass,
+      enterReadingMode,
+      exitReadingMode,
+      toggleTocCollapsed,
+      cycleWidth,
+      cycleDensity,
+    } = useArticleReadingMode();
     let artalkInstance = null;
     let darkModeObserver = null;
     let headingObserver = null;
@@ -103,6 +159,15 @@ export default {
 
     const isDarkMode = () =>
       document.documentElement.classList.contains("dark");
+
+    const toggleTheme = () => {
+      const nextDarkMode = !isDarkMode();
+      window.dispatchEvent(
+        new CustomEvent("trilium-blog:set-theme", {
+          detail: { dark: nextDarkMode },
+        })
+      );
+    };
 
     const formatDate = (dateString) => {
       const options = { year: "numeric", month: "long", day: "numeric" };
@@ -168,6 +233,15 @@ export default {
       initComments();
       setupHeadingObserver();
       updateReadingProgress();
+    };
+
+    const applyReadingModeDocumentState = (enabled) => {
+      document.body.classList.toggle("article-reading-mode", enabled);
+    };
+
+    const goHome = async () => {
+      await router.push({ path: "/" });
+      window.scrollTo(0, 0);
     };
 
     const syncTitle = () => {
@@ -268,6 +342,9 @@ export default {
       if (el) {
         const y = el.getBoundingClientRect().top + window.scrollY - 90;
         window.scrollTo({ top: y, behavior: "smooth" });
+        if (isReadingMode.value) {
+          toggleTocCollapsed(true);
+        }
       }
     };
 
@@ -331,12 +408,21 @@ export default {
       stopSummaryPolling();
       cleanupEnhancements();
       destroyComments();
+      applyReadingModeDocumentState(false);
       if (darkModeObserver) darkModeObserver.disconnect();
       if (headingObserver) headingObserver.disconnect();
     });
 
     watch(() => route.params.noteId, loadPost);
     watch([post, site], syncTitle, { immediate: true });
+    watch(isReadingMode, async (enabled) => {
+      applyReadingModeDocumentState(enabled);
+      await nextTick();
+      updateReadingProgress();
+    }, { immediate: true });
+    watch([isReadingMode, readingWidth, readingDensity], async () => {
+      await enhanceContent();
+    });
 
     return {
       site,
@@ -346,12 +432,23 @@ export default {
       loadError,
       activeHeading,
       tocCollapsed,
+      isReadingMode,
+      readingWidth,
+      readingDensity,
+      readingModeClass,
       readingProgress,
       artalkContainer,
       articleContentRef,
       formatDate,
       loadPost,
       scrollToHeading,
+      enterReadingMode,
+      exitReadingMode,
+      toggleTocCollapsed,
+      toggleTheme,
+      cycleWidth,
+      cycleDensity,
+      goHome,
     };
   },
 };
@@ -382,8 +479,100 @@ function preferredSummaryText(summaries, fallback) {
   overflow-x: clip;
 }
 
+body.article-reading-mode .app-header,
+body.article-reading-mode .app-footer,
+body.article-reading-mode .el-backtop {
+  display: none !important;
+}
+
+body.article-reading-mode .app-main {
+  padding-top: 0;
+}
+
+body.article-reading-mode {
+  background: color-mix(in srgb, var(--bg) 94%, white 6%);
+}
+
+html.dark body.article-reading-mode {
+  background: color-mix(in srgb, var(--bg) 96%, black 4%);
+}
+
 .article-shell:not(.has-toc) {
   gap: 0;
+}
+
+.article-shell.reading-mode {
+  --article-reading-width: 760px;
+  --article-reading-font-size: 18px;
+  --article-reading-line-height: 1.92;
+  --article-reading-block-gap: 1.28em;
+  position: relative;
+  max-width: 100%;
+  min-height: 100vh;
+  padding: 76px 32px 96px;
+  gap: 24px;
+}
+
+.article-shell.reading-mode.reading-width-compact {
+  --article-reading-width: 700px;
+}
+
+.article-shell.reading-mode.reading-density-comfortable {
+  --article-reading-font-size: 17px;
+  --article-reading-line-height: 1.82;
+}
+
+.reading-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 44px;
+  padding: 0 20px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-soft) 88%, transparent 12%);
+  background: color-mix(in srgb, var(--bg) 82%, transparent 18%);
+  backdrop-filter: blur(16px);
+}
+
+.reading-topbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.reading-topbar-link,
+.reading-mode-trigger {
+  border: 1px solid color-mix(in srgb, var(--border-soft) 88%, transparent 12%);
+  background: color-mix(in srgb, var(--surface) 92%, transparent 8%);
+  color: var(--text-soft);
+  border-radius: 999px;
+  min-height: 32px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, color 160ms ease, background 160ms ease;
+}
+
+.reading-topbar-link:hover,
+.reading-mode-trigger:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border-soft) 72%);
+  transform: translateY(-1px);
+}
+
+.reading-topbar-link.is-exit,
+.reading-mode-trigger {
+  color: var(--text);
 }
 
 /* ── TOC sidebar ── */
@@ -454,10 +643,20 @@ function preferredSummaryText(summaries, fallback) {
   max-width: var(--content-w);
 }
 
+.article-shell.reading-mode .article-main {
+  max-width: var(--article-reading-width);
+  margin: 0 auto;
+}
+
 .article-header {
   padding-bottom: 24px;
   margin-bottom: 32px;
   border-bottom: 1px solid var(--border-soft);
+}
+
+.article-shell.reading-mode .article-header {
+  padding-bottom: 28px;
+  margin-bottom: 36px;
 }
 
 .article-title {
@@ -505,12 +704,21 @@ function preferredSummaryText(summaries, fallback) {
   overflow-x: clip;
 }
 
+.article-content.is-reading-mode {
+  font-size: var(--article-reading-font-size);
+  line-height: var(--article-reading-line-height);
+}
+
 .article-content > * + * {
   margin-top: 0;
 }
 
 .article-content p {
   margin: 0 0 1.2em;
+}
+
+.article-content.is-reading-mode p {
+  margin: 0 0 var(--article-reading-block-gap);
 }
 
 .article-content h2 {
@@ -522,6 +730,11 @@ function preferredSummaryText(summaries, fallback) {
   scroll-margin-top: 90px;
 }
 
+.article-content.is-reading-mode h2 {
+  margin-top: 2.65em;
+  margin-bottom: 0.95em;
+}
+
 .article-content h3 {
   margin: 2em 0 0.75em;
   font-size: 22px;
@@ -529,6 +742,11 @@ function preferredSummaryText(summaries, fallback) {
   font-weight: 600;
   color: var(--text);
   scroll-margin-top: 90px;
+}
+
+.article-content.is-reading-mode h3 {
+  margin-top: 2.15em;
+  margin-bottom: 0.82em;
 }
 
 .article-content ul,
@@ -563,6 +781,10 @@ function preferredSummaryText(summaries, fallback) {
   margin: 8px 0;
 }
 
+.article-content.is-reading-mode img {
+  margin: 0;
+}
+
 .article-content .image-gallery-group {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -573,6 +795,20 @@ function preferredSummaryText(summaries, fallback) {
 .article-content .image-gallery-group img {
   width: 100%;
   margin: 0;
+}
+
+.article-content.is-reading-mode figure,
+.article-shell.reading-mode .table-scroll-wrapper,
+.article-content.is-reading-mode .image-gallery-group {
+  margin: 32px 0 40px;
+}
+
+.article-content.is-reading-mode figure img,
+.article-content.is-reading-mode > p > a[data-fancybox] > img,
+.article-content.is-reading-mode > p > img {
+  width: auto;
+  max-width: min(100%, 1000px);
+  margin-inline: auto;
 }
 
 .article-content blockquote {
@@ -612,6 +848,10 @@ html.dark .article-content blockquote {
   font-size: 15px;
   line-height: 1.6;
   table-layout: auto;
+}
+
+.article-content.is-reading-mode table {
+  font-size: 14px;
 }
 
 .article-content th,
@@ -686,6 +926,12 @@ html.dark .article-content :not(pre) > code {
   margin: 2.5em 0;
 }
 
+.article-shell.reading-mode .article-comments,
+.article-shell.reading-mode .article-source,
+.article-shell.reading-mode .article-summary-block {
+  display: none;
+}
+
 /* ── Comments ── */
 .article-comments {
   margin-top: 48px;
@@ -715,6 +961,15 @@ html.dark .article-content :not(pre) > code {
     display: none;
   }
 
+  .article-shell.reading-mode .article-toc-wrapper.is-reading-mode {
+    display: block;
+    position: fixed;
+    top: 56px;
+    right: 16px;
+    width: auto;
+    z-index: 1190;
+  }
+
   .article-main {
     max-width: 100%;
     min-width: 0;
@@ -723,6 +978,21 @@ html.dark .article-content :not(pre) > code {
 }
 
 @media (max-width: 768px) {
+  .reading-topbar {
+    align-items: center;
+    padding: 6px 12px;
+  }
+
+  .reading-topbar-actions {
+    gap: 6px;
+  }
+
+  .reading-topbar-link {
+    min-height: 30px;
+    padding-inline: 10px;
+    font-size: 11px;
+  }
+
   .article-title {
     font-size: 26px;
     line-height: 1.22;
@@ -734,6 +1004,14 @@ html.dark .article-content :not(pre) > code {
 
   .article-content h3 {
     font-size: 18px;
+  }
+
+  .article-shell.reading-mode {
+    padding: 68px 16px 72px;
+  }
+
+  .article-shell.reading-mode .article-main {
+    max-width: 100%;
   }
 
   .article-content figure,
@@ -751,6 +1029,10 @@ html.dark .article-content :not(pre) > code {
   .article-content td {
     min-width: 110px;
     padding: 10px 12px;
+  }
+
+  .article-shell.reading-mode .article-toc-wrapper.is-reading-mode {
+    right: 12px;
   }
 }
 

@@ -152,6 +152,24 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
+:global(.article-shell.reading-mode) .article-code-block {
+  --code-font-size: 14px;
+  --code-line-gap-ratio: 0.75;
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+}
+
+:global(.article-shell.reading-mode) .article-code-block .code-toolbar {
+  min-height: 32px;
+  padding: 8px 14px 7px;
+}
+
+:global(.article-shell.reading-mode) .article-code-block .code-language,
+:global(.article-shell.reading-mode) .article-code-block .code-copy-button {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
 .article-code-block.is-dark {
   --code-line-hover: color-mix(in srgb, var(--surface-muted) 74%, transparent 26%);
   background: var(--code-surface-dark);

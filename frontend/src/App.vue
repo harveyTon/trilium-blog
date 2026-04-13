@@ -17,7 +17,7 @@
 
 <script>
 import { useDark, useToggle } from "@vueuse/core";
-import { onMounted, watch } from "vue";
+import { onMounted, onUnmounted, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { useSiteStore } from "./store";
 import AppFooter from "./components/app/AppFooter.vue";
@@ -38,6 +38,10 @@ export default {
       valueLight: "light",
     });
     const toggleDark = useToggle(isDark);
+    const onThemeRequest = (event) => {
+      const nextDark = typeof event.detail?.dark === "boolean" ? event.detail.dark : !isDark.value;
+      isDark.value = nextDark;
+    };
 
     const applyTheme = (dark) => {
       document.documentElement.classList.toggle("dark", dark);
@@ -54,6 +58,11 @@ export default {
     onMounted(() => {
       siteStore.fetchSiteInfo();
       applyTheme(isDark.value);
+      window.addEventListener("trilium-blog:set-theme", onThemeRequest);
+    });
+
+    onUnmounted(() => {
+      window.removeEventListener("trilium-blog:set-theme", onThemeRequest);
     });
 
     return {
