@@ -3,6 +3,7 @@
 .idea
 .DS_Store
 AGENTS.md
+.env
 .impeccable.md
 .agents/
 .claude/
@@ -10,3 +11,4 @@ AGENTS.md
 skills-lock.json
 backend/logs/
 backend/trilium-blog
+output
