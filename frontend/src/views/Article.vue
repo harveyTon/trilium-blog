@@ -30,7 +30,7 @@
 
           <main class="article-main">
             <ArticleHeader :title="post.title" :formatted-date="formatDate(post.dateModified)" />
-            <ArticleSummaryBlock :summary="summaryState.ai" />
+            <ArticleSummaryBlock :summary="summaryState.ai" :enabled="summaryState.aiEnabled" />
             <ArticleContent :content-html="post.contentHtml" />
             <SourceLinkBlock :page-url="post.pageUrl" />
 
@@ -68,7 +68,7 @@ import { storeToRefs } from "pinia";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { fetchPost } from "../api/blog";
-import { normalizeSummaryPayload } from "../api/summary";
+import { fetchPostSummary, normalizeSummaryPayload } from "../api/summary";
 import ReadingProgressBar from "../components/app/ReadingProgressBar.vue";
 import ArticleContent from "../components/article/ArticleContent.vue";
 import CodeBlockEnhancer from "../components/article/CodeBlockEnhancer.vue";
@@ -99,20 +99,18 @@ export default {
     const siteStore = useSiteStore();
     const { site } = storeToRefs(siteStore);
     const post = ref(null);
+    const summarySource = ref(null);
     const loading = ref(true);
     const loadError = ref(false);
     const activeHeading = ref("");
     const artalkContainer = ref(null);
-    const summaryState = computed(() => normalizeSummaryPayload(post.value));
+    const summaryState = computed(() => normalizeSummaryPayload(summarySource.value || post.value));
     const tocCollapsed = ref(false);
     const { progress: readingProgress, updateReadingProgress } = useReadingProgress();
-    const { enhanceArticleContent } = useArticleEnhancements({
-      hljs,
-      applyHighlightTheme,
-    });
     let artalkInstance = null;
     let darkModeObserver = null;
     let headingObserver = null;
+    let summaryPollTimer = null;
 
     const isDarkMode = () =>
       document.documentElement.classList.contains("dark");
@@ -136,6 +134,11 @@ export default {
         } catch {}
       }
     };
+
+    const { enhanceArticleContent } = useArticleEnhancements({
+      hljs,
+      applyHighlightTheme,
+    });
 
     const destroyComments = () => {
       if (artalkInstance) {
@@ -194,6 +197,61 @@ export default {
       }
     };
 
+    const stopSummaryPolling = () => {
+      if (summaryPollTimer) {
+        window.clearTimeout(summaryPollTimer);
+        summaryPollTimer = null;
+      }
+    };
+
+    const shouldPollSummary = () => {
+      if (!summaryState.value.aiEnabled) {
+        return false;
+      }
+      if (!summaryState.value.ai) {
+        return true;
+      }
+      return ["pending", "processing"].includes(summaryState.value.ai.status);
+    };
+
+    const syncSummary = (summaries) => {
+      if (!post.value) return;
+      const nextSummaryText = preferredSummaryText(summaries, post.value.summary);
+      post.value = {
+        ...post.value,
+        summaries,
+        summary: nextSummaryText,
+      };
+      summarySource.value = {
+        ...post.value,
+        summaries,
+        summary: nextSummaryText,
+      };
+    };
+
+    const pollSummaryStatus = (noteId) => {
+      stopSummaryPolling();
+      if (!shouldPollSummary()) {
+        return;
+      }
+
+      summaryPollTimer = window.setTimeout(async () => {
+        try {
+          const summaries = await fetchPostSummary(noteId);
+          if (route.params.noteId !== noteId || !post.value) {
+            return;
+          }
+          syncSummary(summaries);
+        } catch (error) {
+          console.error("Failed to poll post summary:", error);
+        } finally {
+          if (route.params.noteId === noteId && shouldPollSummary()) {
+            pollSummaryStatus(noteId);
+          }
+        }
+      }, 2500);
+    };
+
     const scrollToHeading = (id) => {
       const el = document.getElementById(id);
       if (el) {
@@ -211,12 +269,18 @@ export default {
       }
       activeHeading.value = "";
       tocCollapsed.value = window.innerWidth <= 1024;
+      stopSummaryPolling();
       try {
-        post.value = await fetchPost(route.params.noteId);
+        const fetchedPost = await fetchPost(route.params.noteId);
+        post.value = fetchedPost;
+        summarySource.value = fetchedPost;
         await enhanceContent();
         syncTitle();
+        pollSummaryStatus(route.params.noteId);
       } catch {
         loadError.value = true;
+        post.value = null;
+        summarySource.value = null;
       } finally {
         loading.value = false;
         if (typeof window.scrollTo === "function") {
@@ -245,6 +309,7 @@ export default {
     });
 
     onUnmounted(() => {
+      stopSummaryPolling();
       destroyComments();
       if (darkModeObserver) darkModeObserver.disconnect();
       if (headingObserver) headingObserver.disconnect();
@@ -269,6 +334,16 @@ export default {
     };
   },
 };
+
+function preferredSummaryText(summaries, fallback) {
+  if (summaries?.aiEnabled && summaries?.ai?.status === "ready" && summaries.ai?.text) {
+    return summaries.ai.text;
+  }
+  if (summaries?.code?.status === "ready" && summaries.code?.text) {
+    return summaries.code.text;
+  }
+  return fallback || "";
+}
 </script>
 
 <style>

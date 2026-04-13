@@ -80,7 +80,8 @@ npm run dev
 | `AI_SUMMARY_RATE_LIMIT_MS` | 否 | `1200` | AI 摘要请求间隔（毫秒） |
 | `AI_SUMMARY_TIMEOUT_MS` | 否 | `60000` | 单次 AI 请求超时（毫秒） |
 | `AI_SUMMARY_MAX_INPUT_CHARS` | 否 | `12000` | 发送给 AI 的正文最大字符数 |
-| `AI_SUMMARY_DATABASE_PATH` | 否 | `./data/summaries.db` | 摘要 SQLite 文件路径 |
+
+AI summary 的 SQLite 文件由后端内部管理，默认存放在 `backend/data/summaries.db`，不需要用户配置路径。
 
 ## 使用
 

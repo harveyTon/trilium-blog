@@ -3,14 +3,14 @@ package blog
 import "time"
 
 type Post struct {
-	NoteID       string    `json:"noteId"`
-	Title        string    `json:"title"`
-	DateModified string    `json:"dateModified"`
-	Summary      string    `json:"summary,omitempty"`
+	NoteID       string     `json:"noteId"`
+	Title        string     `json:"title"`
+	DateModified string     `json:"dateModified"`
+	Summary      string     `json:"summary,omitempty"`
 	Summaries    *Summaries `json:"summaries,omitempty"`
-	TOC          []TOCItem `json:"toc,omitempty"`
-	ContentHTML  string    `json:"contentHtml,omitempty"`
-	PageURL      string    `json:"pageUrl,omitempty"`
+	TOC          []TOCItem  `json:"toc,omitempty"`
+	ContentHTML  string     `json:"contentHtml,omitempty"`
+	PageURL      string     `json:"pageUrl,omitempty"`
 }
 
 type SummaryEntry struct {
@@ -22,9 +22,10 @@ type SummaryEntry struct {
 }
 
 type Summaries struct {
-	AI       *SummaryEntry `json:"ai,omitempty"`
-	Code     *SummaryEntry `json:"code,omitempty"`
-	Fallback string        `json:"fallback,omitempty"`
+	NoteID    string        `json:"noteId,omitempty"`
+	AIEnabled bool          `json:"aiEnabled"`
+	AI        *SummaryEntry `json:"ai,omitempty"`
+	Code      *SummaryEntry `json:"code,omitempty"`
 }
 
 type TOCItem struct {

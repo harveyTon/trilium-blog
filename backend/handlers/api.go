@@ -86,6 +86,22 @@ func (h *APIHandler) GetPost(c *gin.Context) {
 	c.JSON(http.StatusOK, post)
 }
 
+func (h *APIHandler) GetPostSummary(c *gin.Context) {
+	noteId := c.Param("noteId")
+
+	summaries, err := h.service.GetPostSummaries(noteId)
+	if err != nil {
+		if _, ok := err.(*blog.BlogError); ok {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch post summary"})
+		return
+	}
+
+	c.JSON(http.StatusOK, summaries)
+}
+
 func (h *APIHandler) GetAsset(c *gin.Context) {
 	attachmentId := c.Param("attachmentId")
 

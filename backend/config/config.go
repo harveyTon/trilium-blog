@@ -25,7 +25,6 @@ type AISummaryConfig struct {
 	RateLimitMs   int
 	TimeoutMs     int
 	MaxInputChars int
-	DatabasePath  string
 }
 
 type AppConfig struct {
@@ -65,7 +64,6 @@ func LoadConfig() {
 			RateLimitMs:   getEnvInt("AI_SUMMARY_RATE_LIMIT_MS", 1200),
 			TimeoutMs:     getEnvInt("AI_SUMMARY_TIMEOUT_MS", 60000),
 			MaxInputChars: getEnvInt("AI_SUMMARY_MAX_INPUT_CHARS", 12000),
-			DatabasePath:  getEnv("AI_SUMMARY_DATABASE_PATH", "./data/summaries.db"),
 		},
 	}
 

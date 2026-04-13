@@ -31,14 +31,28 @@ func NewSummaryStoreDB(path string) (*SummaryStoreDB, error) {
 	if err != nil {
 		return nil, err
 	}
+	db.SetMaxOpenConns(1)
+	db.SetMaxIdleConns(1)
+	db.SetConnMaxLifetime(0)
 	store := &SummaryStoreDB{db: db}
 	if err := store.init(); err != nil {
+		_ = db.Close()
 		return nil, err
 	}
 	return store, nil
 }
 
 func (s *SummaryStoreDB) init() error {
+	for _, pragma := range []string{
+		"PRAGMA journal_mode = WAL",
+		"PRAGMA synchronous = NORMAL",
+		"PRAGMA busy_timeout = 5000",
+	} {
+		if _, err := s.db.Exec(pragma); err != nil {
+			return err
+		}
+	}
+
 	_, err := s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS summaries (
 			note_id TEXT NOT NULL,

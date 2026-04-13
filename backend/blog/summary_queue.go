@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/harveyTon/trilium-blog/backend/pkg/logger"
 )
 
 type AISummaryJob struct {
@@ -77,8 +79,12 @@ func (q *AISummaryQueue) Enqueue(job AISummaryJob) {
 
 	select {
 	case q.jobs <- job:
+		logger.Logger.Info().Str("note_id", job.NoteID).Msg("Queued AI summary generation")
 	default:
-		q.release(job.NoteID)
+		go func() {
+			q.jobs <- job
+			logger.Logger.Info().Str("note_id", job.NoteID).Msg("Queued AI summary generation after waiting for capacity")
+		}()
 	}
 }
 
@@ -90,6 +96,7 @@ func (q *AISummaryQueue) release(noteID string) {
 
 func (q *AISummaryQueue) worker() {
 	for job := range q.jobs {
+		logger.Logger.Info().Str("note_id", job.NoteID).Msg("Starting AI summary generation")
 		_ = q.store.UpsertSummary(StoredSummary{
 			NoteID:     job.NoteID,
 			Type:       "ai",
@@ -107,6 +114,7 @@ func (q *AISummaryQueue) worker() {
 				Content:    "",
 				Error:      err.Error(),
 			})
+			logger.Logger.Error().Err(err).Str("note_id", job.NoteID).Msg("AI summary generation failed")
 			q.release(job.NoteID)
 			time.Sleep(q.rateLimit)
 			continue
@@ -119,6 +127,7 @@ func (q *AISummaryQueue) worker() {
 			Content:    content,
 			Error:      "",
 		})
+		logger.Logger.Info().Str("note_id", job.NoteID).Msg("AI summary generation completed")
 		q.release(job.NoteID)
 		time.Sleep(q.rateLimit)
 	}

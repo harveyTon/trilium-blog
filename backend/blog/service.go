@@ -156,8 +156,8 @@ func (s *Service) ListPosts(page int) (*PostList, error) {
 			summary := s.extractSummary(sanitized)
 			mu.Lock()
 			pagePosts[idx].Summary = summary
-			summaries, sumErr := s.ensureSummaries(pagePosts[idx].NoteID, content)
-			if sumErr == nil {
+			summaries := s.resolveSummaries(pagePosts[idx].NoteID, content)
+			if summaries != nil {
 				pagePosts[idx].Summaries = summaries
 				pagePosts[idx].Summary = preferredSummaryText(summaries, summary)
 			}
@@ -263,8 +263,8 @@ func (s *Service) ListFeaturedPosts() ([]Post, error) {
 		content, err := s.etapiClient.GetNoteContent(note.NoteID)
 		if err == nil {
 			post.Summary = s.extractSummary(s.sanitizeContent(content))
-			summaries, sumErr := s.ensureSummaries(note.NoteID, content)
-			if sumErr == nil {
+			summaries := s.resolveSummaries(note.NoteID, content)
+			if summaries != nil {
 				post.Summaries = summaries
 				post.Summary = preferredSummaryText(summaries, post.Summary)
 			}
@@ -329,8 +329,8 @@ func (s *Service) GetPost(noteId string) (*Post, error) {
 	toc, modifiedHtml := s.extractTOC(sanitized)
 	processed := s.processContent(modifiedHtml)
 	summaryText := s.extractSummary(sanitized)
-	summaries, sumErr := s.ensureSummaries(note.NoteID, content)
-	if sumErr == nil {
+	summaries := s.resolveSummaries(note.NoteID, content)
+	if summaries != nil {
 		summaryText = preferredSummaryText(summaries, summaryText)
 	}
 
@@ -344,6 +344,23 @@ func (s *Service) GetPost(noteId string) (*Post, error) {
 		Summary:      summaryText,
 		Summaries:    summaries,
 	}, nil
+}
+
+func (s *Service) GetPostSummaries(noteId string) (*Summaries, error) {
+	note, err := s.etapiClient.GetNote(noteId)
+	if err != nil {
+		return nil, err
+	}
+	if !hasBlogLabel(note.Attributes) {
+		return nil, ErrNotBlogPost
+	}
+
+	content, err := s.etapiClient.GetNoteContent(noteId)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.resolveSummaries(note.NoteID, content), nil
 }
 
 func (s *Service) GetAsset(attachmentId string) ([]byte, string, error) {

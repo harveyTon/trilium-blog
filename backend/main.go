@@ -16,6 +16,8 @@ import (
 	"github.com/harveyTon/trilium-blog/backend/pkg/logger"
 )
 
+const summaryDatabasePath = "./data/summaries.db"
+
 func setupRouter(apiHandler *handlers.APIHandler) *gin.Engine {
 	gin.DisableConsoleColor()
 	r := gin.Default()
@@ -29,6 +31,7 @@ func setupRouter(apiHandler *handlers.APIHandler) *gin.Engine {
 		api.GET("/posts/featured", apiHandler.ListFeaturedPosts)
 		api.GET("/search", apiHandler.SearchPosts)
 		api.GET("/posts/:noteId", apiHandler.GetPost)
+		api.GET("/posts/:noteId/summary", apiHandler.GetPostSummary)
 		api.GET("/assets/:attachmentId", apiHandler.GetAsset)
 		api.GET("/imageproxy", apiHandler.ImageProxy)
 	}
@@ -72,14 +75,17 @@ func main() {
 	config.LoadConfig()
 
 	etapiClient := etapi.NewClient(config.Config.TriliumApiUrl, config.Config.TriliumToken)
-	summaryStore, err := blog.NewSummaryStoreDB(config.Config.AISummary.DatabasePath)
+	summaryStore, err := blog.NewSummaryStoreDB(summaryDatabasePath)
 	if err != nil {
-		logger.Fatal("Failed to initialize summary store", err)
+		logger.Error("Failed to initialize summary store; continuing without persisted summaries", err)
 	}
-	defer summaryStore.Close()
+	if summaryStore != nil {
+		defer summaryStore.Close()
+	}
 
 	var aiQueue *blog.AISummaryQueue
-	if config.Config.AISummary.AIRequestsEnabled() {
+	aiSummaryEnabled := summaryStore != nil && config.Config.AISummary.AIRequestsEnabled()
+	if aiSummaryEnabled {
 		aiQueue = blog.NewAISummaryQueue(
 			summaryStore,
 			config.Config.AISummary.Provider,
@@ -105,7 +111,7 @@ func main() {
 		blog.WithImageProxyBaseUrl(config.Config.ImageProxy.BaseURL),
 		blog.WithSummaryStore(summaryStore),
 		blog.WithAISummaryQueue(aiQueue),
-		blog.WithAISummaryEnabled(config.Config.AISummary.AIRequestsEnabled()),
+		blog.WithAISummaryEnabled(aiSummaryEnabled),
 	)
 	apiHandler := handlers.NewAPIHandler(service)
 	r := setupRouter(apiHandler)
