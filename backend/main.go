@@ -83,7 +83,10 @@ func main() {
 	apiHandler := handlers.NewAPIHandler(service)
 	r := setupRouter(apiHandler)
 
-	defaultPort := "8080"
+	defaultPort := os.Getenv("PORT")
+	if defaultPort == "" {
+		defaultPort = "8080"
+	}
 	if len(os.Args) > 1 {
 		defaultPort = os.Args[1]
 	}
