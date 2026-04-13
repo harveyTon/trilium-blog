@@ -183,6 +183,33 @@ export default {
       }
     };
 
+    const hasReadySummary = (summaries) => {
+      if (!summaries) {
+        return false;
+      }
+      if (summaries.aiEnabled && summaries.ai?.status === "ready" && summaries.ai?.text) {
+        return true;
+      }
+      if (summaries.code?.status === "ready" && summaries.code?.text) {
+        return true;
+      }
+      return false;
+    };
+
+    const shouldFetchSummaryImmediately = (source) => {
+      const normalized = normalizeSummaryPayload(source);
+      if (!normalized.aiEnabled) {
+        return false;
+      }
+      if (!source?.summaries) {
+        return true;
+      }
+      if (normalized.ai?.status === "ready" && normalized.ai?.text) {
+        return false;
+      }
+      return !hasReadySummary(source.summaries) || ["pending", "processing"].includes(normalized.ai?.status);
+    };
+
     const shouldPollSummary = () => {
       if (!summaryState.value.aiEnabled) {
         return false;
@@ -259,7 +286,7 @@ export default {
         const fetchedPost = await fetchPost(route.params.noteId);
         post.value = fetchedPost;
         summarySource.value = fetchedPost;
-        if (normalizeSummaryPayload(fetchedPost).aiEnabled) {
+        if (shouldFetchSummaryImmediately(fetchedPost)) {
           try {
             await refreshSummaryStatus(route.params.noteId);
           } catch (error) {

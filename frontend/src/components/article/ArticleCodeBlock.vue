@@ -134,6 +134,10 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .article-code-block {
+  --code-font-size: 15px;
+  --code-line-gap-ratio: 0.8;
+  --code-line-height: calc(var(--code-font-size) * (1 + var(--code-line-gap-ratio)));
+  --code-line-hover: color-mix(in srgb, var(--surface-muted) 92%, var(--accent) 8%);
   --code-surface: color-mix(in srgb, var(--surface) 88%, white 12%);
   --code-surface-dark: color-mix(in srgb, var(--surface) 92%, black 8%);
   --code-border: color-mix(in srgb, var(--border-soft) 78%, transparent 22%);
@@ -149,6 +153,7 @@ onBeforeUnmount(() => {
 }
 
 .article-code-block.is-dark {
+  --code-line-hover: color-mix(in srgb, var(--surface-muted) 74%, transparent 26%);
   background: var(--code-surface-dark);
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.16);
 }
@@ -225,19 +230,36 @@ onBeforeUnmount(() => {
   background: transparent !important;
   min-width: 100%;
   width: max-content;
+  font-family: var(--mono) !important;
+  font-size: var(--code-font-size) !important;
+  line-height: var(--code-line-height) !important;
 }
 
 .code-block-rendered :deep(code) {
   display: block;
-  font-family: var(--mono);
+  font-family: var(--mono) !important;
+  font-size: var(--code-font-size) !important;
+  line-height: var(--code-line-height) !important;
 }
 
 .code-block-rendered :deep(.line) {
-  display: block;
+  display: inline-block;
+  min-width: 100%;
   padding: 0 24px;
-  min-height: 1.9em;
-  line-height: 1.9;
-  transition: background-color 160ms ease;
+  border-radius: 6px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  font-family: var(--mono) !important;
+  font-size: var(--code-font-size) !important;
+  line-height: var(--code-line-height) !important;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.code-block-rendered :deep(.line span) {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  white-space: pre;
 }
 
 .article-code-block.shows-line-numbers .code-block-rendered :deep(pre.shiki) {
@@ -245,7 +267,7 @@ onBeforeUnmount(() => {
 }
 
 .article-code-block.shows-line-numbers .code-block-rendered :deep(.line) {
-  padding-left: 60px;
+  padding-left: 64px;
   position: relative;
 }
 
@@ -255,14 +277,18 @@ onBeforeUnmount(() => {
   position: absolute;
   left: 22px;
   width: 26px;
+  top: 50%;
+  transform: translateY(-50%);
   text-align: right;
   color: color-mix(in srgb, var(--text-faint) 72%, transparent 28%);
   font-size: 12px;
+  line-height: 1;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .code-block-rendered :deep(.line:hover) {
-    background: color-mix(in srgb, var(--surface-muted) 55%, transparent 45%);
+    background-color: var(--code-line-hover);
+    box-shadow: inset 0 0 0 999px var(--code-line-hover);
   }
 
   .code-copy-button {
