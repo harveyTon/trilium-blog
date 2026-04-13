@@ -513,9 +513,6 @@ export default {
   margin: 24px 0 32px;
   font-size: 15px;
   line-height: 1.6;
-  display: block;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
 .article-content th,
