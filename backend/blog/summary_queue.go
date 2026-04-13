@@ -17,13 +17,15 @@ type AISummaryJob struct {
 }
 
 type AISummaryQueue struct {
-	store       SummaryStore
-	baseURL     string
-	apiKey      string
-	model       string
-	prompt      string
-	concurrency int
-	rateLimit   time.Duration
+	store         SummaryStore
+	provider      string
+	baseURL       string
+	apiKey        string
+	model         string
+	prompt        string
+	concurrency   int
+	rateLimit     time.Duration
+	maxInputRunes int
 
 	jobs      chan AISummaryJob
 	inFlight  map[string]struct{}
@@ -31,24 +33,32 @@ type AISummaryQueue struct {
 	client    *http.Client
 }
 
-func NewAISummaryQueue(store SummaryStore, baseURL, apiKey, model, prompt string, concurrency, rateLimitMs int) *AISummaryQueue {
+func NewAISummaryQueue(store SummaryStore, provider, baseURL, apiKey, model, prompt string, concurrency, rateLimitMs, timeoutMs, maxInputChars int) *AISummaryQueue {
 	if concurrency <= 0 {
 		concurrency = 1
 	}
 	if rateLimitMs <= 0 {
 		rateLimitMs = 1200
 	}
+	if timeoutMs <= 0 {
+		timeoutMs = 60000
+	}
+	if maxInputChars <= 0 {
+		maxInputChars = 12000
+	}
 	q := &AISummaryQueue{
-		store:       store,
-		baseURL:     strings.TrimRight(baseURL, "/"),
-		apiKey:      apiKey,
-		model:       model,
-		prompt:      prompt,
-		concurrency: concurrency,
-		rateLimit:   time.Duration(rateLimitMs) * time.Millisecond,
-		jobs:        make(chan AISummaryJob, 128),
-		inFlight:    map[string]struct{}{},
-		client:      &http.Client{Timeout: 60 * time.Second},
+		store:         store,
+		provider:      strings.TrimSpace(provider),
+		baseURL:       strings.TrimRight(baseURL, "/"),
+		apiKey:        apiKey,
+		model:         model,
+		prompt:        prompt,
+		concurrency:   concurrency,
+		rateLimit:     time.Duration(rateLimitMs) * time.Millisecond,
+		maxInputRunes: maxInputChars,
+		jobs:          make(chan AISummaryJob, 128),
+		inFlight:      map[string]struct{}{},
+		client:        &http.Client{Timeout: time.Duration(timeoutMs) * time.Millisecond},
 	}
 	for i := 0; i < concurrency; i++ {
 		go q.worker()
@@ -115,9 +125,13 @@ func (q *AISummaryQueue) worker() {
 }
 
 func (q *AISummaryQueue) generate(content string) (string, error) {
+	if q.provider != "" && q.provider != "openai-compatible" {
+		return "", fmt.Errorf("unsupported ai summary provider: %s", q.provider)
+	}
 	if q.baseURL == "" || q.apiKey == "" || q.model == "" {
 		return "", fmt.Errorf("ai summary provider is not fully configured")
 	}
+	content = clampSummaryInput(content, q.maxInputRunes)
 
 	requestBody := map[string]any{
 		"model": q.model,
@@ -163,4 +177,16 @@ func (q *AISummaryQueue) generate(content string) (string, error) {
 		return "", fmt.Errorf("ai provider returned no choices")
 	}
 	return strings.TrimSpace(result.Choices[0].Message.Content), nil
+}
+
+func clampSummaryInput(content string, maxRunes int) string {
+	content = strings.TrimSpace(content)
+	if maxRunes <= 0 {
+		return content
+	}
+	runes := []rune(content)
+	if len(runes) <= maxRunes {
+		return content
+	}
+	return strings.TrimSpace(string(runes[:maxRunes]))
 }

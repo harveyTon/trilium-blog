@@ -13,7 +13,7 @@ func TestAISummaryQueue_EnqueueDeduplicatesAndFailsGracefully(t *testing.T) {
 	}
 	defer store.Close()
 
-	queue := NewAISummaryQueue(store, "", "", "", "prompt", 1, 10)
+	queue := NewAISummaryQueue(store, "openai-compatible", "", "", "", "prompt", 1, 10, 100, 2000)
 	queue.Enqueue(AISummaryJob{NoteID: "note-1", Content: "hello", SourceHash: "hash"})
 	queue.Enqueue(AISummaryJob{NoteID: "note-1", Content: "hello", SourceHash: "hash"})
 

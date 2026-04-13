@@ -79,15 +79,18 @@ func main() {
 	defer summaryStore.Close()
 
 	var aiQueue *blog.AISummaryQueue
-	if config.Config.AISummary.Enabled {
+	if config.Config.AISummary.AIRequestsEnabled() {
 		aiQueue = blog.NewAISummaryQueue(
 			summaryStore,
+			config.Config.AISummary.Provider,
 			config.Config.AISummary.BaseURL,
 			config.Config.AISummary.APIKey,
 			config.Config.AISummary.Model,
 			config.Config.AISummary.Prompt,
 			config.Config.AISummary.Concurrency,
 			config.Config.AISummary.RateLimitMs,
+			config.Config.AISummary.TimeoutMs,
+			config.Config.AISummary.MaxInputChars,
 		)
 	}
 
@@ -102,7 +105,7 @@ func main() {
 		blog.WithImageProxyBaseUrl(config.Config.ImageProxy.BaseURL),
 		blog.WithSummaryStore(summaryStore),
 		blog.WithAISummaryQueue(aiQueue),
-		blog.WithAISummaryEnabled(config.Config.AISummary.Enabled),
+		blog.WithAISummaryEnabled(config.Config.AISummary.AIRequestsEnabled()),
 	)
 	apiHandler := handlers.NewAPIHandler(service)
 	r := setupRouter(apiHandler)

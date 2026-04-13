@@ -5,10 +5,12 @@
 ## 特性
 
 - 与 Trilium Notes 无缝集成（通过 ETAPI）
-- 分页文章列表 + 文章详情页
+- 首页搜索入口、精选区与分页文章列表
+- 独立搜索页与搜索预览
 - 代码高亮（highlight.js，按需引入）
-- 文章目录导航（TOC）
+- 文章目录导航（TOC）与阅读进度
 - 图片灯箱（Fancybox）
+- AI / code summary 双层摘要能力（可选）
 - 可选图片代理（外部代理或内置 fallback）
 - 内置评论系统（Artalk，可配置）
 - 暗黑模式（Dark / Light 同等支持）
@@ -67,6 +69,18 @@ npm run dev
 | `PORT` | 否 | `8080` | 服务端口 |
 | `IMAGE_PROXY_ENABLED` | 否 | `false` | 启用外部图片代理 |
 | `IMAGE_PROXY_BASE_URL` | 否 | — | 外部图片代理 URL（留空则使用内置 `/api/imageproxy`） |
+| `AI_SUMMARY_ENABLED` | 否 | `false` | 启用 AI 摘要子系统 |
+| `AI_SUMMARY_PROVIDER` | 否 | `openai-compatible` | AI provider 类型 |
+| `AI_SUMMARY_BASE_URL` | 否 | — | AI 接口基础地址 |
+| `AI_SUMMARY_API_KEY` | 否 | — | AI 接口密钥 |
+| `AI_SUMMARY_MODEL` | 否 | — | AI 模型名 |
+| `AI_SUMMARY_PROMPT` | 否 | 内置默认值 | AI 摘要系统提示词 |
+| `AI_SUMMARY_MODE` | 否 | `code` | `code` 仅生成本地摘要，`ai` 在保留 code summary 的同时异步生成 AI summary |
+| `AI_SUMMARY_CONCURRENCY` | 否 | `2` | AI 摘要并发 worker 数 |
+| `AI_SUMMARY_RATE_LIMIT_MS` | 否 | `1200` | AI 摘要请求间隔（毫秒） |
+| `AI_SUMMARY_TIMEOUT_MS` | 否 | `60000` | 单次 AI 请求超时（毫秒） |
+| `AI_SUMMARY_MAX_INPUT_CHARS` | 否 | `12000` | 发送给 AI 的正文最大字符数 |
+| `AI_SUMMARY_DATABASE_PATH` | 否 | `./data/summaries.db` | 摘要 SQLite 文件路径 |
 
 ## 使用
 

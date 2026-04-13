@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/harveyTon/trilium-blog/backend/pkg/logger"
 )
@@ -14,6 +15,7 @@ type ImageProxyConfig struct {
 
 type AISummaryConfig struct {
 	Enabled       bool
+	Provider      string
 	BaseURL       string
 	APIKey        string
 	Model         string
@@ -21,6 +23,8 @@ type AISummaryConfig struct {
 	Mode          string
 	Concurrency   int
 	RateLimitMs   int
+	TimeoutMs     int
+	MaxInputChars int
 	DatabasePath  string
 }
 
@@ -50,15 +54,18 @@ func LoadConfig() {
 			BaseURL: getEnv("IMAGE_PROXY_BASE_URL", ""),
 		},
 		AISummary: AISummaryConfig{
-			Enabled:      getEnvBool("AI_SUMMARY_ENABLED", false),
-			BaseURL:      getEnv("AI_SUMMARY_BASE_URL", ""),
-			APIKey:       getEnv("AI_SUMMARY_API_KEY", ""),
-			Model:        getEnv("AI_SUMMARY_MODEL", ""),
-			Prompt:       getEnv("AI_SUMMARY_PROMPT", "Summarize the article for a blog reader in concise Chinese."),
-			Mode:         getEnv("AI_SUMMARY_MODE", "code"),
-			Concurrency:  getEnvInt("AI_SUMMARY_CONCURRENCY", 2),
-			RateLimitMs:  getEnvInt("AI_SUMMARY_RATE_LIMIT_MS", 1200),
-			DatabasePath: getEnv("AI_SUMMARY_DATABASE_PATH", "./data/summaries.db"),
+			Enabled:       getEnvBool("AI_SUMMARY_ENABLED", false),
+			Provider:      normalizeAISummaryProvider(getEnv("AI_SUMMARY_PROVIDER", "openai-compatible")),
+			BaseURL:       getEnv("AI_SUMMARY_BASE_URL", ""),
+			APIKey:        getEnv("AI_SUMMARY_API_KEY", ""),
+			Model:         getEnv("AI_SUMMARY_MODEL", ""),
+			Prompt:        getEnv("AI_SUMMARY_PROMPT", "Summarize the article for a blog reader in concise Chinese."),
+			Mode:          normalizeAISummaryMode(getEnv("AI_SUMMARY_MODE", "code")),
+			Concurrency:   getEnvInt("AI_SUMMARY_CONCURRENCY", 2),
+			RateLimitMs:   getEnvInt("AI_SUMMARY_RATE_LIMIT_MS", 1200),
+			TimeoutMs:     getEnvInt("AI_SUMMARY_TIMEOUT_MS", 60000),
+			MaxInputChars: getEnvInt("AI_SUMMARY_MAX_INPUT_CHARS", 12000),
+			DatabasePath:  getEnv("AI_SUMMARY_DATABASE_PATH", "./data/summaries.db"),
 		},
 	}
 
@@ -99,4 +106,26 @@ func getEnvBool(key string, fallback bool) bool {
 		return fallback
 	}
 	return b
+}
+
+func normalizeAISummaryMode(mode string) string {
+	switch strings.ToLower(strings.TrimSpace(mode)) {
+	case "ai":
+		return "ai"
+	default:
+		return "code"
+	}
+}
+
+func normalizeAISummaryProvider(provider string) string {
+	switch strings.ToLower(strings.TrimSpace(provider)) {
+	case "", "openai", "openai-compatible":
+		return "openai-compatible"
+	default:
+		return provider
+	}
+}
+
+func (c AISummaryConfig) AIRequestsEnabled() bool {
+	return c.Enabled && c.Mode == "ai"
 }
