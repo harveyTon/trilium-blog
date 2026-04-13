@@ -5,18 +5,17 @@
         <SearchHighlightText :text="item.title" :query="query" />
       </h2>
       <p class="search-result-date">{{ item.dateModified }}</p>
-      <p v-if="item.match?.snippet" class="search-result-snippet">
-        <SearchHighlightText :text="item.match.snippet" :query="query" />
-      </p>
-      <p v-else-if="item.summary" class="search-result-snippet">
-        {{ item.summary }}
+      <p v-if="preferredSnippet" class="search-result-snippet">
+        <SearchHighlightText :text="preferredSnippet" :query="query" />
       </p>
     </router-link>
   </article>
 </template>
 
 <script>
+import { computed, toRef } from "vue";
 import SearchHighlightText from "./SearchHighlightText.vue";
+import { useSummaryStatus } from "../../composables/useSummaryStatus";
 
 export default {
   name: "SearchResultCard",
@@ -32,6 +31,14 @@ export default {
       type: String,
       default: "",
     },
+  },
+  setup(props) {
+    const { preferredSummary } = useSummaryStatus(toRef(props, "item"));
+    const preferredSnippet = computed(() => props.item.match?.snippet || preferredSummary.value.text);
+
+    return {
+      preferredSnippet,
+    };
   },
 };
 </script>

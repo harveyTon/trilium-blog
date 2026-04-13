@@ -1,5 +1,5 @@
 <template>
-  <p v-if="content" class="summary-preview">{{ content }}</p>
+  <p v-if="content" class="summary-preview" :data-summary-type="type || 'fallback'">{{ content }}</p>
 </template>
 
 <script>
@@ -7,6 +7,10 @@ export default {
   name: "SummaryPreview",
   props: {
     content: {
+      type: String,
+      default: "",
+    },
+    type: {
       type: String,
       default: "",
     },

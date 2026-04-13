@@ -90,9 +90,10 @@ import "highlight.js/styles/atom-one-light.css";
 hljs.registerLanguage("javascript", javascript);
 hljs.registerLanguage("bash", bash);
 import { storeToRefs } from "pinia";
-import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { fetchPost } from "../api/blog";
+import { normalizeSummaryPayload } from "../api/summary";
 import { useSiteStore } from "../store";
 
 export default {
@@ -107,6 +108,7 @@ export default {
     const loadError = ref(false);
     const activeHeading = ref("");
     const artalkContainer = ref(null);
+    const summaryState = computed(() => normalizeSummaryPayload(post.value));
     let artalkInstance = null;
     let darkModeObserver = null;
     let headingObserver = null;
@@ -290,6 +292,7 @@ export default {
     return {
       site,
       post,
+      summaryState,
       loading,
       loadError,
       activeHeading,

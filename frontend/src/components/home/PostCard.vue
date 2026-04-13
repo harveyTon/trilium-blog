@@ -9,13 +9,15 @@
         <router-link :to="{ name: 'Article', params: { noteId: post.noteId } }">{{ post.title }}</router-link>
       </h2>
       <div class="post-meta">{{ fullDate }}</div>
-      <SummaryPreview :content="summary" />
+      <SummaryPreview :content="resolvedSummary" :type="summaryType" />
     </div>
   </article>
 </template>
 
 <script>
+import { computed, toRef } from "vue";
 import SummaryPreview from "./SummaryPreview.vue";
+import { useSummaryStatus } from "../../composables/useSummaryStatus";
 
 export default {
   name: "PostCard",
@@ -43,6 +45,16 @@ export default {
       type: String,
       default: "",
     },
+  },
+  setup(props) {
+    const { preferredSummary } = useSummaryStatus(toRef(props, "post"));
+    const resolvedSummary = computed(() => preferredSummary.value.text || props.summary);
+    const summaryType = computed(() => preferredSummary.value.type);
+
+    return {
+      resolvedSummary,
+      summaryType,
+    };
   },
 };
 </script>
