@@ -53,7 +53,6 @@
 
 <script>
 import { ElButton } from "element-plus";
-import { Fancybox } from "@fancyapps/ui";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import Artalk from "artalk";
 import "artalk/dist/Artalk.css";
@@ -72,10 +71,12 @@ import { fetchPost } from "../api/blog";
 import { normalizeSummaryPayload } from "../api/summary";
 import ReadingProgressBar from "../components/app/ReadingProgressBar.vue";
 import ArticleContent from "../components/article/ArticleContent.vue";
+import CodeBlockEnhancer from "../components/article/CodeBlockEnhancer.vue";
 import ArticleHeader from "../components/article/ArticleHeader.vue";
 import ArticleSummaryBlock from "../components/article/ArticleSummaryBlock.vue";
 import ArticleTOC from "../components/article/ArticleTOC.vue";
 import SourceLinkBlock from "../components/article/SourceLinkBlock.vue";
+import { useArticleEnhancements } from "../composables/useArticleEnhancements";
 import { useReadingProgress } from "../composables/useReadingProgress";
 import { useSiteStore } from "../store";
 
@@ -84,6 +85,7 @@ export default {
   components: {
     ElButton,
     ArticleContent,
+    CodeBlockEnhancer,
     ArticleHeader,
     ArticleSummaryBlock,
     ArticleTOC,
@@ -102,6 +104,10 @@ export default {
     const summaryState = computed(() => normalizeSummaryPayload(post.value));
     const tocCollapsed = ref(false);
     const { progress: readingProgress, updateReadingProgress } = useReadingProgress();
+    const { enhanceArticleContent } = useArticleEnhancements({
+      hljs,
+      applyHighlightTheme,
+    });
     let artalkInstance = null;
     let darkModeObserver = null;
     let headingObserver = null;
@@ -127,43 +133,6 @@ export default {
           }
         } catch {}
       }
-    };
-
-    const highlightCode = () => {
-      applyHighlightTheme();
-      document.querySelectorAll("pre code").forEach((el) => {
-        const code = el.textContent ?? "";
-        const languageMatch = el.className.match(/language-(\S+)/);
-        if (languageMatch) {
-          el.innerHTML = hljs.highlight(code, {
-            language: languageMatch[1],
-          }).value;
-        } else {
-          el.innerHTML = hljs.highlightAuto(code).value;
-        }
-        el.classList.add("hljs");
-      });
-    };
-
-    const setupGallery = () => {
-      document.querySelectorAll(".article-content img").forEach((img) => {
-        img.loading = "lazy";
-        const parent = img.parentElement;
-        if (!parent) return;
-        if (parent.tagName !== "A") {
-          const wrapper = document.createElement("a");
-          wrapper.href = img.src;
-          wrapper.target = "_blank";
-          wrapper.dataset.fancybox = "gallery";
-          parent.replaceChild(wrapper, img);
-          wrapper.appendChild(img);
-          return;
-        }
-        parent.href = img.src;
-        parent.target = "_blank";
-        parent.dataset.fancybox = "gallery";
-      });
-      Fancybox.bind("[data-fancybox]", {});
     };
 
     const destroyComments = () => {
@@ -211,8 +180,7 @@ export default {
 
     const enhanceContent = async () => {
       await nextTick();
-      highlightCode();
-      setupGallery();
+      enhanceArticleContent();
       initComments();
       setupHeadingObserver();
       updateReadingProgress();
@@ -275,7 +243,6 @@ export default {
     });
 
     onUnmounted(() => {
-      Fancybox.destroy();
       destroyComments();
       if (darkModeObserver) darkModeObserver.disconnect();
       if (headingObserver) headingObserver.disconnect();
@@ -572,6 +539,37 @@ html.dark .article-content blockquote {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   /* Let pre be as wide as its container allows, not more */
   box-sizing: border-box;
+}
+
+.code-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px 0 8px;
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+.code-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.code-action-button {
+  border: 1px solid var(--border-soft);
+  background: var(--surface);
+  color: var(--text-soft);
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.article-content pre[data-collapsed="true"] {
+  max-height: 96px;
+  overflow: hidden;
 }
 
 .article-content pre code {
