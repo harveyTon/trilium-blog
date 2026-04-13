@@ -159,6 +159,40 @@ func (s *Service) ListPosts(page int) (*PostList, error) {
 	}, nil
 }
 
+func (s *Service) GenerateSitemap() (string, error) {
+	notes, err := s.etapiClient.GetNotes("#blog=true")
+	if err != nil {
+		return "", err
+	}
+
+	var posts []Post
+	for _, n := range notes {
+		if n.Type == "text" && hasBlogLabel(n.Attributes) {
+			posts = append(posts, Post{
+				NoteID:       n.NoteID,
+				Title:        n.Title,
+				DateModified: n.DateModified,
+			})
+		}
+	}
+
+	domain := strings.TrimRight(s.domain, "/")
+
+	var sb strings.Builder
+	sb.WriteString(`<?xml version="1.0" encoding="UTF-8"?>` + "\n")
+	sb.WriteString(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` + "\n")
+
+	for _, p := range posts {
+		sb.WriteString("  <url>\n")
+		sb.WriteString("    <loc>" + domain + "/post/" + p.NoteID + "</loc>\n")
+		sb.WriteString("    <lastmod>" + p.DateModified + "</lastmod>\n")
+		sb.WriteString("  </url>\n")
+	}
+
+	sb.WriteString("</urlset>")
+	return sb.String(), nil
+}
+
 func (s *Service) GetPost(noteId string) (*Post, error) {
 	note, err := s.etapiClient.GetNote(noteId)
 	if err != nil {

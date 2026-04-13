@@ -72,7 +72,12 @@ func (h *APIHandler) GetAsset(c *gin.Context) {
 
 func (h *APIHandler) Sitemap(c *gin.Context) {
 	c.Header("Content-Type", "application/xml")
-	c.String(http.StatusOK, `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>`)
+	sitemap, err := h.service.GenerateSitemap()
+	if err != nil {
+		c.String(http.StatusInternalServerError, `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>`)
+		return
+	}
+	c.String(http.StatusOK, sitemap)
 }
 
 func (h *APIHandler) Robots(c *gin.Context) {
