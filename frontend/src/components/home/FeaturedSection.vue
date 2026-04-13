@@ -158,7 +158,7 @@ export default {
 .featured-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
   margin-top: 12px;
 }
 
@@ -186,6 +186,7 @@ export default {
   --featured-gap: 16px;
   position: relative;
   width: 100%;
+  padding: 2px 0 4px;
 }
 
 .featured-viewport {
@@ -199,14 +200,17 @@ export default {
   gap: var(--featured-gap);
   transition: transform 0.42s ease;
   will-change: transform;
+  align-items: stretch;
 }
 
 .featured-item-shell {
   min-width: 0;
+  display: flex;
 }
 
 .featured-item-shell :deep(.featured-card) {
   height: 100%;
+  width: 100%;
 }
 
 .featured-item-shell :deep(.featured-link) {
@@ -273,6 +277,7 @@ export default {
   background: var(--border);
   transition: transform 0.18s ease, background 0.18s ease;
   cursor: pointer;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--surface) 65%, transparent);
 }
 
 .featured-dot.is-active {
@@ -283,6 +288,7 @@ export default {
 @media (max-width: 768px) {
   .featured-carousel {
     --featured-gap: 12px;
+    padding-bottom: 2px;
   }
 
   .featured-nav {

@@ -1,11 +1,19 @@
 <template>
-  <p v-if="content" class="summary-preview" :data-summary-type="type || 'fallback'">
+  <p
+    v-if="content"
+    class="summary-preview"
+    :class="{ 'summary-preview--flush': flush }"
+    :style="previewStyle"
+    :data-summary-type="type || 'fallback'"
+  >
     <span v-if="type === 'ai'" class="summary-badge">AI</span>
     {{ content }}
   </p>
 </template>
 
 <script>
+import { computed } from "vue";
+
 export default {
   name: "SummaryPreview",
   props: {
@@ -17,6 +25,27 @@ export default {
       type: String,
       default: "",
     },
+    lines: {
+      type: Number,
+      default: 2,
+    },
+    flush: {
+      type: Boolean,
+      default: false,
+    },
+    tone: {
+      type: String,
+      default: "default",
+    },
+  },
+  setup(props) {
+    const previewStyle = computed(() => ({
+      WebkitLineClamp: String(props.lines),
+    }));
+
+    return {
+      previewStyle,
+    };
   },
 };
 </script>
@@ -49,6 +78,14 @@ export default {
   overflow: hidden;
 }
 
+.summary-preview--flush {
+  margin: 0;
+}
+
+.summary-preview[data-summary-type="ai"] {
+  color: var(--text);
+}
+
 @media (max-width: 768px) {
   .summary-badge {
     font-size: 10px;
@@ -58,7 +95,6 @@ export default {
   .summary-preview {
     font-size: 15px;
     line-height: 1.7;
-    -webkit-line-clamp: 3;
   }
 }
 </style>

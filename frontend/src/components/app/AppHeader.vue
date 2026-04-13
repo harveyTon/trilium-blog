@@ -10,7 +10,7 @@
         <el-icon><Search /></el-icon>
       </button>
 
-      <router-link :to="{ name: 'HomePage' }" class="blog-brand">
+      <router-link :to="{ name: 'HomePage' }" class="blog-brand" @click="handleBrandClick">
         <img :src="logoSrc" :alt="site.name + ' - 返回首页'" class="blog-logo" />
         <span class="blog-title">{{ site.name }}</span>
       </router-link>
@@ -84,6 +84,19 @@ export default {
     const route = useRoute();
     const mobileSearchOpen = ref(false);
 
+    const handleBrandClick = () => {
+      mobileSearchOpen.value = false;
+
+      if (route.name === "HomePage" && !route.query.page) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: "auto" });
+      });
+    };
+
     watch(
       () => route.fullPath,
       () => {
@@ -93,6 +106,7 @@ export default {
 
     return {
       logoSrc,
+      handleBrandClick,
       mobileSearchOpen,
     };
   },
