@@ -403,16 +403,42 @@ func cleanInvisibleChars(s string) string {
 	return result.String()
 }
 
-var (
-	repeatedPunctRe = regexp.MustCompile(`([.,;:!?。、，、；：！？…—–])\1{2,}`)
-	runPunctSpaceRe = regexp.MustCompile(`[.,;:!?。、，、；：！？…—–]\s{2,}`)
-)
-
-// cleanRepeatedPunctuation replaces runs of the same punctuation with a single instance
+// cleanRepeatedPunctuation collapses 3+ consecutive identical punctuation marks
+// into a single instance. Only collapses same-char runs, not mixed punctuation.
 func cleanRepeatedPunctuation(s string) string {
-	s = repeatedPunctRe.ReplaceAllString(s, "$1")
-	s = runPunctSpaceRe.ReplaceAllString(s, " ")
-	return s
+	var result strings.Builder
+	result.Grow(len(s))
+	runes := []rune(s)
+	i := 0
+	for i < len(runes) {
+		r := runes[i]
+		if isPunct(r) {
+			count := 1
+			for i+count < len(runes) && runes[i+count] == r {
+				count++
+			}
+			if count >= 3 {
+				result.WriteRune(r)
+			} else {
+				for j := 0; j < count; j++ {
+					result.WriteRune(r)
+				}
+			}
+			i += count
+		} else {
+			result.WriteRune(r)
+			i++
+		}
+	}
+	return collapseWhitespace(result.String())
+}
+
+// isPunct reports whether r is a punctuation character that should be
+// considered for repetition collapsing.
+func isPunct(r rune) bool {
+	return r == '.' || r == ',' || r == ';' || r == ':' || r == '!' || r == '?' ||
+		r == '。' || r == '，' || r == '、' || r == '；' || r == '：' ||
+		r == '！' || r == '？' || r == '…' || r == '—' || r == '–'
 }
 
 // isMostlySymbols returns true if more than 40% of characters are symbols/punctuation
