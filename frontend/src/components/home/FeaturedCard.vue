@@ -4,15 +4,13 @@
       <div class="featured-copy">
         <div class="featured-top">
           <p class="featured-kicker">精选</p>
+          <p class="featured-date">{{ formattedDate }}</p>
         </div>
         <div class="featured-title-wrap">
           <h2 class="featured-title">{{ post.title }}</h2>
         </div>
         <div class="featured-summary-wrap">
           <SummaryPreview :content="resolvedSummary" :type="summaryType" :lines="4" :flush="true" />
-        </div>
-        <div class="featured-footer">
-          <p class="featured-date">{{ formattedDate }}</p>
         </div>
       </div>
     </router-link>
@@ -113,6 +111,8 @@ export default {
 .featured-top {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   min-height: 22px;
 }
 
@@ -169,14 +169,8 @@ export default {
   font-size: 12px;
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
-}
-
-.featured-footer {
-  min-height: 18px;
-  display: flex;
-  align-items: end;
-  padding-top: 2px;
-  border-top: 1px solid color-mix(in srgb, var(--border-soft) 76%, transparent);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .featured-link :deep(.summary-preview) {
