@@ -266,9 +266,9 @@ export default {
 .post-item:hover .post-title a::after {
   background: linear-gradient(
     to right,
-    #c6c6c6 0%,
-    #c6c6c6 35%,
-    #c6c6c6 65%,
+    #FC9E42 0%,
+    #FC9E42 35%,
+    #FC9E42 65%,
     transparent 100%
   );
 }
@@ -276,9 +276,9 @@ export default {
 html.dark .post-item:hover .post-title a::after {
   background: linear-gradient(
     to right,
-    #555 0%,
-    #555 35%,
-    #555 65%,
+    #FC9E42 0%,
+    #FC9E42 35%,
+    #FC9E42 65%,
     transparent 100%
   );
 }
