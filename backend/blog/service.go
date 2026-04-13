@@ -284,7 +284,7 @@ func (s *Service) extractTOC(html string) ([]TOCItem, string) {
 			level = 3
 		}
 		toc = append(toc, TOCItem{ID: id, Title: text, Level: level})
-		return len(toc) < 20
+		return true
 	})
 
 	result, _ := doc.Find("body").Html()
