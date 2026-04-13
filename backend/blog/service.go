@@ -159,13 +159,27 @@ func (s *Service) getCachedNoteContent(noteID string) (string, error) {
 
 func (s *Service) getCachedAttachment(attachmentID string) (*cachedAttachment, error) {
 	return cacheJSON(s.store, fmt.Sprintf("attachment:%s", attachmentID), attachmentCacheTTLSeconds, func() (*cachedAttachment, error) {
-		content, contentType, err := s.etapiClient.GetAttachmentContent(attachmentID)
+		attachment, err := s.etapiClient.GetAttachment(attachmentID)
 		if err != nil {
 			return nil, err
 		}
+
+		note, err := s.getCachedNote(attachment.OwnerID)
+		if err != nil {
+			return nil, err
+		}
+		if !hasBlogLabel(note.Attributes) {
+			return nil, ErrNotBlogPost
+		}
+
+		content, err := s.etapiClient.GetAttachmentContentBytes(attachmentID)
+		if err != nil {
+			return nil, err
+		}
+
 		return &cachedAttachment{
 			Content:     content,
-			ContentType: contentType,
+			ContentType: attachment.Mime,
 		}, nil
 	})
 }

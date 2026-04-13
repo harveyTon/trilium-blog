@@ -105,25 +105,33 @@ func (c *Client) GetAttachmentContent(attachmentID string) ([]byte, string, erro
 		return nil, "", err
 	}
 
+	body, err := c.GetAttachmentContentBytes(attachmentID)
+	if err != nil {
+		return nil, "", err
+	}
+	return body, att.Mime, nil
+}
+
+func (c *Client) GetAttachmentContentBytes(attachmentID string) ([]byte, error) {
 	url := fmt.Sprintf("%s/etapi/attachments/%s/content", c.baseURL, attachmentID)
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Add("Authorization", c.token)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, "", fmt.Errorf("failed to get attachment content: status %d", resp.StatusCode)
+		return nil, fmt.Errorf("failed to get attachment content: status %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
-	return body, att.Mime, nil
+	return body, nil
 }
 
 func (c *Client) doRequest(url string, target interface{}) error {

@@ -103,6 +103,7 @@ func TestGetAssetCachesAttachmentContent(t *testing.T) {
 
 	var mu sync.Mutex
 	attachmentMetaCalls := 0
+	noteCalls := 0
 	assetCalls := 0
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -113,6 +114,12 @@ func TestGetAssetCachesAttachmentContent(t *testing.T) {
 			mu.Unlock()
 			w.Header().Set("Content-Type", "application/json")
 			fmt.Fprintf(w, `{"ownerId":"note-1","mime":"%s"}`, contentType)
+		case "/etapi/notes/note-1":
+			mu.Lock()
+			noteCalls++
+			mu.Unlock()
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, `{"noteId":"note-1","title":"Attachment Owner","dateModified":"2026-04-13T12:00:00Z","type":"text","mime":"text/html","attributes":[{"type":"label","name":"blog","value":"true"}]}`)
 		case "/etapi/attachments/" + attachmentID + "/content":
 			mu.Lock()
 			assetCalls++
@@ -150,6 +157,9 @@ func TestGetAssetCachesAttachmentContent(t *testing.T) {
 	defer mu.Unlock()
 	if attachmentMetaCalls != 1 {
 		t.Fatalf("expected attachment metadata to be fetched once, got %d", attachmentMetaCalls)
+	}
+	if noteCalls != 1 {
+		t.Fatalf("expected owner note metadata to be fetched once, got %d", noteCalls)
 	}
 	if assetCalls != 1 {
 		t.Fatalf("expected attachment content to be fetched once, got %d", assetCalls)
@@ -212,5 +222,34 @@ func TestListPostsCachesNotesAndContent(t *testing.T) {
 	}
 	if contentCalls != 1 {
 		t.Fatalf("expected listed note content to be fetched once, got %d", contentCalls)
+	}
+}
+
+func TestGetAssetRejectsAttachmentsFromNonBlogNotes(t *testing.T) {
+	attachmentID := "asset-private"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/etapi/attachments/" + attachmentID:
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, `{"ownerId":"note-private","mime":"image/png"}`)
+		case "/etapi/notes/note-private":
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprint(w, `{"noteId":"note-private","title":"Private Note","dateModified":"2026-04-13T12:00:00Z","type":"text","mime":"text/html","attributes":[]}`)
+		case "/etapi/attachments/" + attachmentID + "/content":
+			t.Fatalf("attachment content should not be fetched for non-blog note")
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	service := NewService(
+		etapi.NewClient(server.URL, "token"),
+		newMemoryStore(),
+	)
+
+	if _, _, err := service.GetAsset(attachmentID); err == nil {
+		t.Fatalf("expected non-blog attachment fetch to fail")
 	}
 }

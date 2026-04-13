@@ -45,6 +45,16 @@ func TestImageProxy_Security(t *testing.T) {
 			wantStatus: http.StatusForbidden,
 		},
 		{
+			name:       "localhost with port returns 403",
+			query:      "?url=" + url.QueryEscape("http://localhost:8080/img.jpg"),
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "127.0.0.1 with port returns 403",
+			query:      "?url=" + url.QueryEscape("http://127.0.0.1:8080/img.jpg"),
+			wantStatus: http.StatusForbidden,
+		},
+		{
 			name:       "private network 10.x returns 403",
 			query:      "?url=" + url.QueryEscape("http://10.0.0.1/img.jpg"),
 			wantStatus: http.StatusForbidden,
@@ -57,6 +67,21 @@ func TestImageProxy_Security(t *testing.T) {
 		{
 			name:       "private network 172.16.x returns 403",
 			query:      "?url=" + url.QueryEscape("http://172.16.0.1/img.jpg"),
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "link local 169.254.x returns 403",
+			query:      "?url=" + url.QueryEscape("http://169.254.169.254/img.jpg"),
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "ipv6 loopback returns 403",
+			query:      "?url=" + url.QueryEscape("http://[::1]/img.jpg"),
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "ipv6 unique local returns 403",
+			query:      "?url=" + url.QueryEscape("http://[fd00::1]/img.jpg"),
 			wantStatus: http.StatusForbidden,
 		},
 	}
@@ -104,11 +129,17 @@ func TestIsBlockedHost(t *testing.T) {
 	blocked := []string{
 		"localhost",
 		"127.0.0.1",
+		"127.0.0.1:8080",
+		"localhost:8080",
 		"::1",
 		"example.local",
 		"10.0.0.1",
 		"192.168.1.1",
 		"172.16.0.1",
+		"169.254.169.254",
+		"100.64.0.1",
+		"fd00::1",
+		"fe80::1",
 	}
 	for _, h := range blocked {
 		if !isBlockedHost(h) {

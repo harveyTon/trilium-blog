@@ -13,6 +13,10 @@ import (
 	"github.com/harveyTon/trilium-blog/backend/blog"
 )
 
+var blockedIPNets = mustParseCIDRs([]string{
+	"100.64.0.0/10",
+})
+
 type APIHandler struct {
 	service *blog.Service
 }
@@ -146,7 +150,7 @@ func (h *APIHandler) ImageProxy(c *gin.Context) {
 		return
 	}
 
-	host := strings.ToLower(parsedURL.Host)
+	host := strings.ToLower(parsedURL.Hostname())
 	if isBlockedHost(host) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "proxying this host is not allowed"})
 		return
@@ -159,7 +163,7 @@ func (h *APIHandler) ImageProxy(c *gin.Context) {
 				return http.ErrUseLastResponse
 			}
 			if via != nil {
-				redirectHost := strings.ToLower(req.URL.Host)
+				redirectHost := strings.ToLower(req.URL.Hostname())
 				if isBlockedHost(redirectHost) {
 					return http.ErrUseLastResponse
 				}
@@ -205,27 +209,59 @@ func (h *APIHandler) ImageProxy(c *gin.Context) {
 }
 
 func isBlockedHost(host string) bool {
-	if host == "localhost" || host == "127.0.0.1" || host == "::1" || strings.HasSuffix(host, ".local") {
+	host = strings.TrimSpace(strings.ToLower(host))
+	if host == "" {
+		return true
+	}
+	if strings.Contains(host, ":") && !strings.Contains(host, "]") {
+		if parsedHost, _, err := net.SplitHostPort(host); err == nil {
+			host = parsedHost
+		}
+	}
+	host = strings.TrimPrefix(host, "[")
+	host = strings.TrimSuffix(host, "]")
+
+	if host == "localhost" || strings.HasSuffix(host, ".local") {
 		return true
 	}
 	if ip := net.ParseIP(host); ip != nil {
 		return isPrivateIP(ip)
 	}
-	return false
-}
-
-func isPrivateIP(ip net.IP) bool {
-	blocks := []string{
-		"10.",
-		"172.16.", "172.17.", "172.18.", "172.19.", "172.20.",
-		"172.21.", "172.22.", "172.23.", "172.24.", "172.25.",
-		"172.26.", "172.27.", "172.28.", "172.29.", "172.30.", "172.31.",
-		"192.168.",
+	ips, err := net.LookupIP(host)
+	if err != nil {
+		return false
 	}
-	for _, block := range blocks {
-		if strings.HasPrefix(ip.String(), block) {
+	for _, ip := range ips {
+		if isPrivateIP(ip) {
 			return true
 		}
 	}
 	return false
+}
+
+func isPrivateIP(ip net.IP) bool {
+	if ip == nil {
+		return true
+	}
+	if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() || ip.IsMulticast() {
+		return true
+	}
+	for _, block := range blockedIPNets {
+		if block.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+func mustParseCIDRs(values []string) []*net.IPNet {
+	nets := make([]*net.IPNet, 0, len(values))
+	for _, value := range values {
+		_, network, err := net.ParseCIDR(value)
+		if err != nil {
+			panic(err)
+		}
+		nets = append(nets, network)
+	}
+	return nets
 }
