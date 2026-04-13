@@ -19,44 +19,17 @@
       </template>
       <template #default>
         <div v-if="post" :class="['article-shell', post.toc && post.toc.length >= 3 ? 'has-toc' : '']">
-          <div v-if="post.toc && post.toc.length >= 3" class="article-toc-wrapper">
-            <aside class="article-toc">
-              <div class="toc-panel">
-              <div class="toc-title">目录</div>
-              <a
-                v-for="item in post.toc"
-                :key="item.id"
-                :href="'#' + item.id"
-                :class="['toc-link', 'toc-level-' + item.level, { 'is-active': activeHeading === item.id }]"
-                @click.prevent="scrollToHeading(item.id)"
-              >
-                {{ item.title }}
-              </a>
-            </div>
-            </aside>
-          </div>
+          <ArticleTOC
+            :items="post.toc"
+            :active-heading="activeHeading"
+            @scroll-to-heading="scrollToHeading"
+          />
 
           <main class="article-main">
-            <header class="article-header">
-              <h1 class="article-title">{{ post.title }}</h1>
-              <div class="article-meta">
-                <time>{{ formatDate(post.dateModified) }}</time>
-              </div>
-              <span class="artalk-pv-count" style="display: none"></span>
-            </header>
-
-            <div class="article-content" v-html="post.contentHtml"></div>
-
-            <div v-if="post.pageUrl" class="article-source">
-              剪贴自：
-              <a
-                :href="post.pageUrl"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {{ post.pageUrl }}
-              </a>
-            </div>
+            <ArticleHeader :title="post.title" :formatted-date="formatDate(post.dateModified)" />
+            <ArticleSummaryBlock :summary="summaryState.ai" />
+            <ArticleContent :content-html="post.contentHtml" />
+            <SourceLinkBlock :page-url="post.pageUrl" />
 
             <div v-if="site.comments.enabled" class="article-comments">
               <h2>评论</h2>
@@ -94,11 +67,23 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { fetchPost } from "../api/blog";
 import { normalizeSummaryPayload } from "../api/summary";
+import ArticleContent from "../components/article/ArticleContent.vue";
+import ArticleHeader from "../components/article/ArticleHeader.vue";
+import ArticleSummaryBlock from "../components/article/ArticleSummaryBlock.vue";
+import ArticleTOC from "../components/article/ArticleTOC.vue";
+import SourceLinkBlock from "../components/article/SourceLinkBlock.vue";
 import { useSiteStore } from "../store";
 
 export default {
   name: "ArticlePage",
-  components: { ElButton },
+  components: {
+    ElButton,
+    ArticleContent,
+    ArticleHeader,
+    ArticleSummaryBlock,
+    ArticleTOC,
+    SourceLinkBlock,
+  },
   setup() {
     const route = useRoute();
     const siteStore = useSiteStore();
