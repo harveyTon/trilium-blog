@@ -169,6 +169,14 @@ export default {
         parent.dataset.fancybox = "gallery";
       });
       Fancybox.bind("[data-fancybox]", {});
+
+      document.querySelectorAll(".article-content table").forEach((table) => {
+        if (table.parentElement.classList.contains("table-scroll-wrapper")) return;
+        const wrapper = document.createElement("div");
+        wrapper.className = "table-scroll-wrapper";
+        table.parentNode.insertBefore(wrapper, table);
+        wrapper.appendChild(table);
+      });
     };
 
     const destroyComments = () => {
@@ -507,6 +515,12 @@ export default {
 }
 
 /* ── Table ── */
+.table-scroll-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .article-content table {
   width: 100%;
   border-collapse: collapse;
