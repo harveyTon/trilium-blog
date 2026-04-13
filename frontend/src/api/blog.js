@@ -25,6 +25,11 @@ export async function fetchPosts(page = 1) {
   return response.data;
 }
 
+export async function fetchFeaturedPosts() {
+  const response = await api.get("/posts/featured");
+  return response.data;
+}
+
 export async function fetchPost(noteId) {
   const response = await api.get(`/posts/${noteId}`);
   return response.data;
