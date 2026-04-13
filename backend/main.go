@@ -17,6 +17,12 @@ import (
 )
 
 const summaryDatabasePath = "./data/summaries.db"
+const (
+	defaultRedisAddr       = "redis:6379"
+	defaultRedisPassword   = ""
+	defaultRedisDB         = 0
+	defaultRedisTTLSeconds = 300
+)
 
 func setupRouter(apiHandler *handlers.APIHandler) *gin.Engine {
 	gin.DisableConsoleColor()
@@ -75,6 +81,23 @@ func main() {
 	config.LoadConfig()
 
 	etapiClient := etapi.NewClient(config.Config.TriliumApiUrl, config.Config.TriliumToken)
+	var err error
+
+	cacheStore := blog.Store(&blog.NoopStore{})
+	var redisStore *blog.RedisStore
+	redisStore, err = blog.NewRedisStore(
+		defaultRedisAddr,
+		defaultRedisPassword,
+		defaultRedisDB,
+		defaultRedisTTLSeconds,
+	)
+	if err != nil {
+		logger.Error("Failed to initialize Redis cache; continuing without Redis", err)
+	} else {
+		cacheStore = redisStore
+		defer redisStore.Close()
+	}
+
 	summaryStore, err := blog.NewSummaryStoreDB(summaryDatabasePath)
 	if err != nil {
 		logger.Error("Failed to initialize summary store; continuing without persisted summaries", err)
@@ -102,7 +125,7 @@ func main() {
 
 	service := blog.NewService(
 		etapiClient,
-		&blog.NoopStore{},
+		cacheStore,
 		blog.WithBlogName(config.Config.BlogName),
 		blog.WithBlogTitle(config.Config.BlogTitle),
 		blog.WithDomain(config.Config.Domain),

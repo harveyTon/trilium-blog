@@ -1,6 +1,8 @@
 package blog
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/url"
 	"regexp"
 	"strings"
@@ -32,6 +34,13 @@ type Service struct {
 }
 
 type ServiceOption func(*Service)
+
+const (
+	notesCacheTTLSeconds      = 300
+	noteCacheTTLSeconds       = 300
+	noteContentTTLSeconds     = 300
+	attachmentCacheTTLSeconds = 3600
+)
 
 func WithBlogName(name string) ServiceOption {
 	return func(s *Service) { s.blogName = name }
@@ -81,6 +90,86 @@ func NewService(client *etapi.Client, store Store, opts ...ServiceOption) *Servi
 	return s
 }
 
+type cachedAttachment struct {
+	Content     []byte `json:"content"`
+	ContentType string `json:"contentType"`
+}
+
+func (s *Service) cacheString(key string, ttlSeconds int, loader func() (string, error)) (string, error) {
+	if s.store != nil {
+		if cachedValue, err := s.store.Get(key); err == nil {
+			return cachedValue, nil
+		}
+	}
+
+	value, err := loader()
+	if err != nil {
+		return "", err
+	}
+
+	if s.store != nil {
+		_ = s.store.Set(key, value, ttlSeconds)
+	}
+	return value, nil
+}
+
+func cacheJSON[T any](store Store, key string, ttlSeconds int, loader func() (T, error)) (T, error) {
+	var zero T
+
+	if store != nil {
+		if cachedValue, err := store.Get(key); err == nil {
+			var decoded T
+			if unmarshalErr := json.Unmarshal([]byte(cachedValue), &decoded); unmarshalErr == nil {
+				return decoded, nil
+			}
+		}
+	}
+
+	value, err := loader()
+	if err != nil {
+		return zero, err
+	}
+
+	if store != nil {
+		if encoded, marshalErr := json.Marshal(value); marshalErr == nil {
+			_ = store.Set(key, string(encoded), ttlSeconds)
+		}
+	}
+
+	return value, nil
+}
+
+func (s *Service) getCachedNotes(search string) ([]etapi.Note, error) {
+	return cacheJSON(s.store, fmt.Sprintf("notes:%s", search), notesCacheTTLSeconds, func() ([]etapi.Note, error) {
+		return s.etapiClient.GetNotes(search)
+	})
+}
+
+func (s *Service) getCachedNote(noteID string) (*etapi.Note, error) {
+	return cacheJSON(s.store, fmt.Sprintf("note:%s", noteID), noteCacheTTLSeconds, func() (*etapi.Note, error) {
+		return s.etapiClient.GetNote(noteID)
+	})
+}
+
+func (s *Service) getCachedNoteContent(noteID string) (string, error) {
+	return s.cacheString(fmt.Sprintf("note-content:%s", noteID), noteContentTTLSeconds, func() (string, error) {
+		return s.etapiClient.GetNoteContent(noteID)
+	})
+}
+
+func (s *Service) getCachedAttachment(attachmentID string) (*cachedAttachment, error) {
+	return cacheJSON(s.store, fmt.Sprintf("attachment:%s", attachmentID), attachmentCacheTTLSeconds, func() (*cachedAttachment, error) {
+		content, contentType, err := s.etapiClient.GetAttachmentContent(attachmentID)
+		if err != nil {
+			return nil, err
+		}
+		return &cachedAttachment{
+			Content:     content,
+			ContentType: contentType,
+		}, nil
+	})
+}
+
 func (s *Service) GetSite() Site {
 	return Site{
 		Name:   s.blogName,
@@ -97,7 +186,7 @@ func (s *Service) GetSite() Site {
 }
 
 func (s *Service) ListPosts(page int) (*PostList, error) {
-	notes, err := s.etapiClient.GetNotes("#blog=true")
+	notes, err := s.getCachedNotes("#blog=true")
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +232,7 @@ func (s *Service) ListPosts(page int) (*PostList, error) {
 		// idx is passed as a value to avoid closure issues with the loop variable
 		go func(idx int) {
 			defer wg.Done()
-			content, err := s.etapiClient.GetNoteContent(pagePosts[idx].NoteID)
+			content, err := s.getCachedNoteContent(pagePosts[idx].NoteID)
 			if err != nil {
 				mu.Lock()
 				if fetchErr == nil {
@@ -189,7 +278,7 @@ func (s *Service) SearchPosts(query string, preview bool, limit int) (*SearchRes
 		}, nil
 	}
 
-	notes, err := s.etapiClient.GetNotes("#blog=true")
+	notes, err := s.getCachedNotes("#blog=true")
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +288,7 @@ func (s *Service) SearchPosts(query string, preview bool, limit int) (*SearchRes
 		if note.Type != "text" || !hasBlogLabel(note.Attributes) {
 			continue
 		}
-		content, err := s.etapiClient.GetNoteContent(note.NoteID)
+		content, err := s.getCachedNoteContent(note.NoteID)
 		if err != nil {
 			continue
 		}
@@ -243,7 +332,7 @@ func (s *Service) SearchPosts(query string, preview bool, limit int) (*SearchRes
 }
 
 func (s *Service) ListFeaturedPosts() ([]Post, error) {
-	notes, err := s.etapiClient.GetNotes("#blogtop=true")
+	notes, err := s.getCachedNotes("#blogtop=true")
 	if err != nil {
 		return nil, err
 	}
@@ -260,7 +349,7 @@ func (s *Service) ListFeaturedPosts() ([]Post, error) {
 			DateModified: note.DateModified,
 		}
 
-		content, err := s.etapiClient.GetNoteContent(note.NoteID)
+		content, err := s.getCachedNoteContent(note.NoteID)
 		if err == nil {
 			post.Summary = s.extractSummary(s.sanitizeContent(content))
 			summaries := s.resolveSummaries(note.NoteID, note.Title, content)
@@ -277,7 +366,7 @@ func (s *Service) ListFeaturedPosts() ([]Post, error) {
 }
 
 func (s *Service) GenerateSitemap() (string, error) {
-	notes, err := s.etapiClient.GetNotes("#blog=true")
+	notes, err := s.getCachedNotes("#blog=true")
 	if err != nil {
 		return "", err
 	}
@@ -311,7 +400,7 @@ func (s *Service) GenerateSitemap() (string, error) {
 }
 
 func (s *Service) GetPost(noteId string) (*Post, error) {
-	note, err := s.etapiClient.GetNote(noteId)
+	note, err := s.getCachedNote(noteId)
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +409,7 @@ func (s *Service) GetPost(noteId string) (*Post, error) {
 		return nil, ErrNotBlogPost
 	}
 
-	content, err := s.etapiClient.GetNoteContent(noteId)
+	content, err := s.getCachedNoteContent(noteId)
 	if err != nil {
 		return nil, err
 	}
@@ -347,7 +436,7 @@ func (s *Service) GetPost(noteId string) (*Post, error) {
 }
 
 func (s *Service) GetPostSummaries(noteId string) (*Summaries, error) {
-	note, err := s.etapiClient.GetNote(noteId)
+	note, err := s.getCachedNote(noteId)
 	if err != nil {
 		return nil, err
 	}
@@ -355,7 +444,7 @@ func (s *Service) GetPostSummaries(noteId string) (*Summaries, error) {
 		return nil, ErrNotBlogPost
 	}
 
-	content, err := s.etapiClient.GetNoteContent(noteId)
+	content, err := s.getCachedNoteContent(noteId)
 	if err != nil {
 		return nil, err
 	}
@@ -364,7 +453,11 @@ func (s *Service) GetPostSummaries(noteId string) (*Summaries, error) {
 }
 
 func (s *Service) GetAsset(attachmentId string) ([]byte, string, error) {
-	return s.etapiClient.GetAttachmentContent(attachmentId)
+	asset, err := s.getCachedAttachment(attachmentId)
+	if err != nil {
+		return nil, "", err
+	}
+	return asset.Content, asset.ContentType, nil
 }
 
 var ErrNotBlogPost = &BlogError{Message: "note is not a blog post"}
