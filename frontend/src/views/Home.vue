@@ -1,10 +1,14 @@
 <template>
   <div class="home">
     <div v-if="loading" class="post-list" aria-busy="true">
-      <div v-for="i in 5" :key="i" class="post-card post-card--skeleton">
-        <div class="skeleton-meta"></div>
-        <div class="skeleton-title"></div>
-        <div class="skeleton-title skeleton-title--short"></div>
+      <div v-for="i in 5" :key="i" class="post-item post-item--skeleton">
+        <div class="skeleton-date"></div>
+        <div class="skeleton-right">
+          <div class="skeleton-title"></div>
+          <div class="skeleton-line"></div>
+          <div class="skeleton-meta"></div>
+          <div class="skeleton-summary"></div>
+        </div>
       </div>
     </div>
 
@@ -15,24 +19,23 @@
         <el-button type="primary" @click="loadPosts">重试</el-button>
       </div>
       <nav class="post-list" aria-label="文章列表">
-        <router-link
+        <article
           v-for="post in posts"
           :key="post.noteId"
-          :to="{ name: 'Article', params: { noteId: post.noteId } }"
-          class="post-card"
-          :aria-label="post.title + '，' + formatDate(post.dateModified)"
+          class="post-item"
         >
-          <div class="post-meta">
-            <time :datetime="post.dateModified">{{ formatDate(post.dateModified) }}</time>
+          <div class="post-date">
+            <div class="post-day">{{ getDay(post.dateModified) }}</div>
+            <div class="post-month">{{ getMonth(post.dateModified) }}</div>
           </div>
-          <h2 class="post-title">{{ post.title }}</h2>
-          <p v-if="post.summary" class="post-summary">{{ sanitizeSummary(post.summary) }}</p>
-          <div class="post-read-cue" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+          <div class="post-body">
+            <h2 class="post-title">
+              <router-link :to="{ name: 'Article', params: { noteId: post.noteId } }">{{ post.title }}</router-link>
+            </h2>
+            <div class="post-meta">{{ formatFullDate(post.dateModified) }}</div>
+            <p v-if="post.summary" class="post-summary">{{ sanitizeSummary(post.summary) }}</p>
           </div>
-        </router-link>
+        </article>
       </nav>
       <div v-if="pagination.totalPages > 1" class="pagination-wrapper">
         <el-pagination
@@ -101,9 +104,24 @@ export default {
       window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
-    const formatDate = (dateString) => {
-      const options = { year: "numeric", month: "long", day: "numeric" };
-      return new Date(dateString).toLocaleDateString(undefined, options);
+    const pad = (n) => String(n).padStart(2, "0");
+
+    const getDay = (dateString) => {
+      return pad(new Date(dateString).getDate());
+    };
+
+    const getMonth = (dateString) => {
+      const d = new Date(dateString);
+      return `${d.getFullYear()}年-${pad(d.getMonth() + 1)}月`;
+    };
+
+    const formatFullDate = (dateString) => {
+      const d = new Date(dateString);
+      const h = d.getHours();
+      const m = pad(d.getMinutes());
+      const period = h < 12 ? "上午" : "下午";
+      const displayHour = h > 12 ? h - 12 : h === 0 ? 12 : h;
+      return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${period}${displayHour}:${m}`;
     };
 
     const sanitizeSummary = (text) => {
@@ -138,7 +156,9 @@ export default {
       currentPage,
       pagination,
       handleCurrentChange,
-      formatDate,
+      getDay,
+      getMonth,
+      formatFullDate,
       sanitizeSummary,
       loadPosts,
     };
@@ -147,7 +167,6 @@ export default {
 </script>
 
 <style scoped>
-/* ── Page shell ── */
 .home {
   max-width: var(--list-w);
   margin: 0 auto;
@@ -158,115 +177,186 @@ export default {
 .post-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
 }
 
 .post-list:focus-within {
   outline: none;
 }
 
-/* ── Card ── */
-.post-card {
-  position: relative;
+/* ── Item ── */
+.post-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 28px;
+  padding: 18px 0 22px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.post-item:first-child {
+  border-top: none;
+}
+
+/* ── Date block (left) ── */
+.post-date {
+  width: 92px;
+  min-width: 92px;
+  height: 92px;
   display: flex;
   flex-direction: column;
-  padding: 28px 0;
-  border-bottom: 1px solid var(--border-soft);
-  text-decoration: none;
-  transition: border-color 160ms ease;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-muted);
+  flex-shrink: 0;
 }
 
-.post-card:first-child {
-  border-top: 1px solid var(--border-soft);
-}
-
-.post-card:hover {
-  border-bottom-color: var(--border);
-}
-
-.post-card:hover .post-title {
-  color: var(--link);
-}
-
-.post-card:hover .post-read-cue {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-/* ── Meta ── */
-.post-meta {
-  margin-bottom: 10px;
-}
-
-.post-meta time {
-  color: var(--text-faint);
-  font-size: 13px;
+.post-day {
+  font-size: 52px;
+  line-height: 1;
+  font-weight: 600;
+  color: var(--text);
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.01em;
+}
+
+.post-month {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-faint);
+  line-height: 1.2;
+}
+
+/* ── Body (right) ── */
+.post-body {
+  flex: 1;
+  min-width: 0;
 }
 
 /* ── Title ── */
 .post-title {
   margin: 0;
-  color: var(--text);
-  font-size: clamp(18px, 3vw, 22px);
-  line-height: 1.35;
-  font-weight: 600;
-  letter-spacing: -0.005em;
-  padding-right: 40px;
-  transition: color 160ms ease;
+  font-size: 20px;
+  line-height: 1.4;
+  font-weight: 700;
 }
 
-/* ── Read cue (right arrow) ── */
-.post-read-cue {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateX(-4px) translateY(-50%);
-  color: var(--accent);
-  opacity: 0;
-  transition: opacity 160ms ease, transform 160ms ease;
-  pointer-events: none;
+.post-title a {
+  color: var(--text);
+  text-decoration: none;
+  position: relative;
+  display: inline-block;
+}
+
+/* ── Short gradient divider line (key visual) ── */
+.post-title a::after {
+  content: "";
+  display: block;
+  width: 120px;
+  height: 1px;
+  margin-top: 14px;
+  background: linear-gradient(
+    to right,
+    var(--border) 0%,
+    var(--border) 35%,
+    var(--border) 65%,
+    transparent 100%
+  );
+  transition: background 0.2s ease;
+}
+
+.post-item:hover .post-title a::after {
+  background: linear-gradient(
+    to right,
+    #c6c6c6 0%,
+    #c6c6c6 35%,
+    #c6c6c6 65%,
+    transparent 100%
+  );
+}
+
+html.dark .post-item:hover .post-title a::after {
+  background: linear-gradient(
+    to right,
+    #555 0%,
+    #555 35%,
+    #555 65%,
+    transparent 100%
+  );
+}
+
+/* ── Meta (hidden on desktop, shown on mobile) ── */
+.post-meta {
+  display: none;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-faint);
+  line-height: 1.4;
 }
 
 /* ── Summary ── */
 .post-summary {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
+  font-size: 16px;
+  line-height: 1.75;
   color: var(--text-soft);
-  font-size: 14px;
-  line-height: 1.6;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  padding-right: 40px;
 }
 
 /* ── Skeleton ── */
-.post-card--skeleton {
+.post-item--skeleton {
   pointer-events: none;
 }
 
-.skeleton-meta {
-  width: 120px;
-  height: 12px;
+.skeleton-date {
+  width: 92px;
+  height: 92px;
+  min-width: 92px;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-muted);
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+.skeleton-right {
+  flex: 1;
+  min-width: 0;
+}
+
+.skeleton-title {
+  width: 70%;
+  height: 24px;
   background: var(--border-soft);
   border-radius: 4px;
   margin-bottom: 14px;
   animation: skeleton-pulse 1.6s ease-in-out infinite;
 }
 
-.skeleton-title {
-  width: 70%;
-  height: 20px;
+.skeleton-line {
+  width: 120px;
+  height: 1px;
   background: var(--border-soft);
-  border-radius: 4px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   animation: skeleton-pulse 1.6s ease-in-out infinite;
+  animation-delay: 0.05s;
 }
 
-.skeleton-title--short {
-  width: 45%;
+.skeleton-meta {
+  width: 40%;
+  height: 12px;
+  background: var(--border-soft);
+  border-radius: 4px;
+  margin-bottom: 12px;
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+  animation-delay: 0.1s;
+}
+
+.skeleton-summary {
+  width: 90%;
+  height: 16px;
+  background: var(--border-soft);
+  border-radius: 4px;
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
   animation-delay: 0.15s;
 }
 
@@ -275,7 +365,7 @@ export default {
   50% { opacity: 1; }
 }
 
-/* ── Pagination wrapper ── */
+/* ── Pagination ── */
 .pagination-wrapper {
   margin-top: 40px;
   padding-bottom: 24px;
@@ -283,7 +373,6 @@ export default {
   justify-content: center;
 }
 
-/* Override Element Plus pagination defaults */
 :deep(.el-pagination) {
   font-weight: 500;
   gap: 4px;
@@ -358,15 +447,52 @@ html.dark :deep(.el-pager li.is-active) {
   margin-top: 16px;
 }
 
+/* ── Dark mode ── */
+html.dark .post-item {
+  border-color: rgba(255, 255, 255, 0.04);
+}
+
+html.dark .post-date {
+  border-color: var(--border);
+  background: var(--surface-muted);
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .home {
     padding: 0 10px;
   }
 
+  .post-item {
+    display: block;
+    padding: 18px 0;
+  }
+
+  .post-date {
+    display: none;
+  }
+
   .post-title {
-    font-size: 17px;
-    padding-right: 32px;
+    font-size: 18px;
+    line-height: 1.45;
+  }
+
+  .post-title a::after {
+    width: 96px;
+    margin-top: 12px;
+  }
+
+  .post-meta {
+    display: block;
+    margin-top: 10px;
+    font-size: 12px;
+  }
+
+  .post-summary {
+    margin-top: 10px;
+    font-size: 15px;
+    line-height: 1.7;
+    -webkit-line-clamp: 3;
   }
 }
 </style>
