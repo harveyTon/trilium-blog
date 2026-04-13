@@ -108,6 +108,7 @@ export default {
     let artalkInstance = null;
     let darkModeObserver = null;
     let headingObserver = null;
+    let tocScrollHandler = null;
 
     const isDarkMode = () =>
       document.documentElement.classList.contains("dark");
@@ -220,6 +221,49 @@ export default {
       setupHeadingObserver();
     };
 
+    const setupTocTracking = () => {
+      if (!post.value?.toc?.length || post.value.toc.length < 3) return;
+
+      const tocEl = document.querySelector('.article-toc');
+      const shellEl = document.querySelector('.article-shell');
+      if (!tocEl || !shellEl) return;
+
+      const headerH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--header-h')) || 64;
+
+      const updateTocPosition = () => {
+        const shellRect = shellEl.getBoundingClientRect();
+        const tocWidth = 220;
+        const gap = 32;
+        const stickyTop = headerH + 24;
+        const tocHeight = tocEl.offsetHeight;
+        const shellBottom = shellRect.bottom;
+
+        if (shellRect.top <= stickyTop && shellBottom > tocHeight) {
+          tocEl.style.position = 'fixed';
+          tocEl.style.top = stickyTop + 'px';
+          tocEl.style.left = (shellRect.left - tocWidth - gap) + 'px';
+          tocEl.style.bottom = 'auto';
+          tocEl.style.width = tocWidth + 'px';
+        } else if (shellBottom <= tocHeight) {
+          tocEl.style.position = 'absolute';
+          tocEl.style.top = 'auto';
+          tocEl.style.bottom = '0';
+          tocEl.style.left = '0';
+          tocEl.style.width = tocWidth + 'px';
+        } else {
+          tocEl.style.position = '';
+          tocEl.style.top = '';
+          tocEl.style.left = '';
+          tocEl.style.bottom = '';
+          tocEl.style.width = '';
+        }
+      };
+
+      tocScrollHandler = updateTocPosition;
+      window.addEventListener('scroll', tocScrollHandler, { passive: true });
+      updateTocPosition();
+    };
+
     const syncTitle = () => {
       if (post.value && site.value.title) {
         document.title = `${post.value.title} - ${site.value.title}`;
@@ -241,10 +285,15 @@ export default {
         headingObserver.disconnect();
         headingObserver = null;
       }
+      if (tocScrollHandler) {
+        window.removeEventListener('scroll', tocScrollHandler);
+        tocScrollHandler = null;
+      }
       activeHeading.value = "";
       try {
         post.value = await fetchPost(route.params.noteId);
         await enhanceContent();
+        setupTocTracking();
         syncTitle();
       } catch {
         loadError.value = true;
@@ -280,6 +329,7 @@ export default {
       destroyComments();
       if (darkModeObserver) darkModeObserver.disconnect();
       if (headingObserver) headingObserver.disconnect();
+      if (tocScrollHandler) window.removeEventListener('scroll', tocScrollHandler);
     });
 
     watch(() => route.params.noteId, loadPost);
@@ -311,27 +361,22 @@ export default {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  gap: 0;
+  gap: 32px;
 }
 
-.article-shell.has-toc {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 32px;
+.article-shell:not(.has-toc) {
+  gap: 0;
 }
 
 /* ── TOC sidebar ── */
 .article-toc {
-  position: sticky;
-  top: calc(var(--header-h) + 24px);
   width: 220px;
   flex-shrink: 0;
+  align-self: start;
   max-height: calc(100vh - var(--header-h) - 48px);
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-  align-self: start;
 }
 
 .toc-panel {
