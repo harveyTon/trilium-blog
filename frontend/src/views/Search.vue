@@ -10,7 +10,7 @@
     </header>
 
     <div class="search-state">
-      <el-empty
+      <SearchEmptyState
         v-if="!hasQuery"
         description="输入关键词后，可在这里查看完整搜索结果"
       />
@@ -20,15 +20,9 @@
           <el-skeleton :rows="6" animated />
         </div>
         <div v-else class="search-result-shell">
-          <p class="search-count">共找到 {{ total }} 条结果</p>
-          <el-empty v-if="!items.length" description="没有找到相关内容" />
-          <ul v-else class="search-result-list">
-            <li v-for="item in items" :key="item.noteId" class="search-result-item">
-              <router-link :to="{ name: 'Article', params: { noteId: item.noteId } }">
-                {{ item.title }}
-              </router-link>
-            </li>
-          </ul>
+          <SearchFilters />
+          <SearchEmptyState v-if="!items.length" description="没有找到相关内容" />
+          <SearchResultList v-else :items="items" :query="query" :total="total" />
         </div>
       </template>
     </div>
@@ -37,12 +31,18 @@
 
 <script>
 import { ElAlert } from "element-plus";
+import SearchEmptyState from "../components/search/SearchEmptyState.vue";
+import SearchFilters from "../components/search/SearchFilters.vue";
+import SearchResultList from "../components/search/SearchResultList.vue";
 import { useSearch } from "../composables/useSearch";
 
 export default {
   name: "SearchPage",
   components: {
     ElAlert,
+    SearchEmptyState,
+    SearchFilters,
+    SearchResultList,
   },
   setup() {
     const { query, hasQuery, loading, error, items, total } = useSearch();
@@ -101,29 +101,6 @@ export default {
 .search-result-shell {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-.search-count {
-  margin: 0;
-  color: var(--text-soft);
-}
-
-.search-result-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.search-result-item a {
-  color: var(--link);
-  text-decoration: none;
-}
-
-.search-result-item a:hover {
-  text-decoration: underline;
+  gap: 16px;
 }
 </style>
