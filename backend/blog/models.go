@@ -6,6 +6,7 @@ type Post struct {
 	NoteID       string    `json:"noteId"`
 	Title        string    `json:"title"`
 	DateModified string    `json:"dateModified"`
+	Summary      string    `json:"summary,omitempty"`
 	TOC          []TOCItem `json:"toc,omitempty"`
 	ContentHTML  string    `json:"contentHtml,omitempty"`
 	PageURL      string    `json:"pageUrl,omitempty"`
