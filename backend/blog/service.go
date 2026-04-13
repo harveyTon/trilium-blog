@@ -404,8 +404,8 @@ func cleanInvisibleChars(s string) string {
 }
 
 var (
-	repeatedPunctRe = regexp.MustCompile(`([\.\,\;\:\!\?\。、，、；：！？…—–])\1+`)
-	runPunctSpaceRe = regexp.MustCompile(`[\.\,\;\:\!\?\。、，、；：！？…—–\s]{3,}`)
+	repeatedPunctRe = regexp.MustCompile(`([.,;:!?。、，、；：！？…—–])\1{2,}`)
+	runPunctSpaceRe = regexp.MustCompile(`[.,;:!?。、，、；：！？…—–]\s{2,}`)
 )
 
 // cleanRepeatedPunctuation replaces runs of the same punctuation with a single instance
@@ -515,12 +515,16 @@ done:
 	return strings.TrimRight(result, " \t\n\r")
 }
 
-// cleanTrailingChars removes trailing punctuation, spaces, and invisible characters
+// cleanTrailingChars removes trailing invisible garbage and control characters,
+// preserving normal sentence-ending punctuation.
 func cleanTrailingChars(s string) string {
 	s = strings.TrimRight(s, " \t\n\r")
 	var result strings.Builder
 	for _, r := range s {
-		if unicode.IsPunct(r) {
+		if r == '\u200b' || r == '\u200c' || r == '\u200d' || r == '\ufeff' || r == '\u00ad' || r == '\ufffd' {
+			continue
+		}
+		if r < 32 && r != '\t' && r != '\n' && r != '\r' {
 			continue
 		}
 		result.WriteRune(r)
