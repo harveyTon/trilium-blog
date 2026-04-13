@@ -4,6 +4,8 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"sync"
+	"unicode"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/harveyTon/trilium-blog/backend/etapi"
@@ -115,8 +117,41 @@ func (s *Service) ListPosts(page int) (*PostList, error) {
 		start = total
 	}
 
+	pagePosts := posts[start:end]
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var fetchErr error
+
+	for i := range pagePosts {
+		wg.Add(1)
+		// idx is passed as a value to avoid closure issues with the loop variable
+		go func(idx int) {
+			defer wg.Done()
+			content, err := s.etapiClient.GetNoteContent(pagePosts[idx].NoteID)
+			if err != nil {
+				mu.Lock()
+				if fetchErr == nil {
+					fetchErr = err
+				}
+				mu.Unlock()
+				return
+			}
+			sanitized := s.sanitizeContent(content)
+			summary := s.extractSummary(sanitized)
+			mu.Lock()
+			pagePosts[idx].Summary = summary
+			mu.Unlock()
+		}(i)
+	}
+	wg.Wait()
+
+	if fetchErr != nil && len(pagePosts) == 0 {
+		return nil, fetchErr
+	}
+
 	return &PostList{
-		Items:      posts[start:end],
+		Items:      pagePosts,
 		Page:       page,
 		PageSize:   pageSize,
 		Total:      total,
@@ -223,6 +258,272 @@ func (s *Service) extractTOC(html string) ([]TOCItem, string) {
 		return toc, html
 	}
 	return toc, strings.TrimSpace(result)
+}
+
+func (s *Service) extractSummary(html string) string {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
+	if err != nil {
+		return ""
+	}
+
+	// Remove all noise elements
+	doc.Find("pre, code, h1, h2, h3, h4, h5, h6, blockquote, img, hr, table, figure, nav, style, script, .toc, .article-toc, iframe, svg, canvas, video, audio").Each(func(i int, sel *goquery.Selection) {
+		sel.Remove()
+	})
+
+	// Replace links with their text content
+	doc.Find("a").Each(func(i int, sel *goquery.Selection) {
+		text := strings.TrimSpace(sel.Text())
+		sel.ReplaceWithHtml(text)
+	})
+
+	// Get plain text
+	text := strings.TrimSpace(doc.Text())
+
+	// Decode HTML entities (e.g. &amp; &lt; &gt; &quot; &#39; &nbsp;)
+	text = htmlEntityDecode(text)
+
+	// Normalize whitespace: collapse multiple spaces/newlines to single space
+	text = collapseWhitespace(text)
+
+	// Remove control characters and other invisible garbage
+	text = cleanInvisibleChars(text)
+
+	// Remove consecutive repeated punctuation (e.g. "..." "——" "，，，")
+	text = cleanRepeatedPunctuation(text)
+
+	// Try to extract the first meaningful paragraph
+	// Split by double newline or single newline that separates blocks
+	paragraphs := splitParagraphs(text)
+	var bestParagraph string
+
+	for _, p := range paragraphs {
+		p = strings.TrimSpace(p)
+		if len(p) < 30 {
+			continue
+		}
+		// Skip if looks like a heading or list item (short, ends with : or no terminal punctuation)
+		if len(p) < 80 && (strings.HasSuffix(p, ":") || strings.HasSuffix(p, "：")) {
+			continue
+		}
+		// Skip if mostly symbols/numbers
+		if isMostlySymbols(p) > 40 {
+			continue
+		}
+		bestParagraph = p
+		break
+	}
+
+	if bestParagraph == "" && len(text) > 0 {
+		// Fallback: use the whole text
+		bestParagraph = text
+	}
+
+	if bestParagraph == "" {
+		return ""
+	}
+
+	// Truncate to 90-160 runes, at a natural boundary
+	result := truncateAtBoundary(bestParagraph, 90, 160)
+
+	// Final cleanup: strip trailing punctuation and invisible chars
+	result = cleanTrailingChars(result)
+
+	// Final check: if result is too short or empty, return empty
+	if len([]rune(result)) < 20 {
+		return ""
+	}
+
+	return result
+}
+
+// htmlEntityDecode converts common HTML entities to their unicode characters
+func htmlEntityDecode(s string) string {
+	replacer := strings.NewReplacer(
+		"&amp;", "&",
+		"&lt;", "<",
+		"&gt;", ">",
+		"&quot;", `"`,
+		"&#39;", "'",
+		"&apos;", "'",
+		"&nbsp;", " ",
+		"&mdash;", "—",
+		"&ndash;", "–",
+		"&hellip;", "…",
+		"&copy;", "©",
+		"&reg;", "®",
+		"&trade;", "™",
+		"&#x27;", "'",
+		"&#x2F;", "/",
+		"&lsquo;", "'",
+		"&rsquo;", "'",
+		"&ldquo;", "\u201c",
+		"&rdquo;", "\u201d",
+	)
+	return replacer.Replace(s)
+}
+
+// collapseWhitespace replaces sequences of whitespace with a single space
+func collapseWhitespace(s string) string {
+	var result strings.Builder
+	result.Grow(len(s))
+	inSpace := false
+	for _, r := range s {
+		if unicode.IsSpace(r) {
+			if !inSpace && result.Len() > 0 {
+				result.WriteRune(' ')
+				inSpace = true
+			}
+		} else {
+			result.WriteRune(r)
+			inSpace = false
+		}
+	}
+	return result.String()
+}
+
+// cleanInvisibleChars removes control characters, zero-width chars, and other invisible garbage
+func cleanInvisibleChars(s string) string {
+	var result strings.Builder
+	for _, r := range s {
+		// Remove control chars (C0 and C1 except tab, newline, CR)
+		if r < 32 && r != '\t' && r != '\n' && r != '\r' {
+			continue
+		}
+		// Remove zero-width characters
+		if r == '\u200b' || r == '\u200c' || r == '\u200d' || r == '\ufeff' || r == '\u00ad' {
+			continue
+		}
+		// Remove replacement character that indicates encoding errors
+		if r == '\ufffd' {
+			continue
+		}
+		result.WriteRune(r)
+	}
+	return result.String()
+}
+
+// cleanRepeatedPunctuation replaces runs of the same punctuation with a single instance
+func cleanRepeatedPunctuation(s string) string {
+	re := regexp.MustCompile(`([\.\,\;\:\!\?\。、，、；：！？…—–])\1+`)
+	s = re.ReplaceAllString(s, "$1")
+	// Collapse runs of different punctuation
+	re2 := regexp.MustCompile(`[\.\,\;\:\!\?\。、，、；：！？…—–\s]{3,}`)
+	s = re2.ReplaceAllString(s, " ")
+	return s
+}
+
+// isMostlySymbols returns true if more than 40% of characters are symbols/punctuation
+func isMostlySymbols(s string) int {
+	var symbols, total int
+	for _, r := range s {
+		if unicode.IsPunct(r) || unicode.IsSymbol(r) {
+			symbols++
+		}
+		total++
+	}
+	if total == 0 {
+		return 0
+	}
+	return symbols * 100 / total
+}
+
+// splitParagraphs splits text into paragraphs using blank lines
+func splitParagraphs(s string) []string {
+	// Split by double newline or single newline followed by significant content
+	parts := strings.Split(s, "\n\n")
+	var paragraphs []string
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if len(p) > 0 {
+			paragraphs = append(paragraphs, p)
+		}
+	}
+	// Also try single newline split for inline paragraph breaks
+	if len(paragraphs) == 1 && strings.Count(s, "\n") > 2 {
+		lines := strings.Split(s, "\n")
+		var current strings.Builder
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				if current.Len() > 0 {
+					paragraphs = append(paragraphs, current.String())
+					current.Reset()
+				}
+			} else {
+				if current.Len() > 0 {
+					current.WriteString(" ")
+				}
+				current.WriteString(line)
+			}
+		}
+		if current.Len() > 0 {
+			paragraphs = append(paragraphs, current.String())
+		}
+	}
+	return paragraphs
+}
+
+// truncateAtBoundary truncates text to be between minRunes and maxRunes,
+// preferring to break at sentence/phrase boundaries
+func truncateAtBoundary(s string, minRunes, maxRunes int) string {
+	runes := []rune(s)
+	if len(runes) <= maxRunes {
+		return s
+	}
+
+	// Candidate truncation points: sentence ends (。！？!?) followed by space or end,
+	// or comma/colon/space, or just space
+	// We scan from maxRunes backwards to find a good boundary
+	bestCut := maxRunes
+
+	// First, look for sentence-ending punctuation within the range [minRunes, maxRunes]
+	for i := maxRunes - 1; i >= minRunes; i-- {
+		r := runes[i]
+		// Sentence-ending punctuation
+		if r == '。' || r == '！' || r == '？' || r == '.' || r == '!' || r == '?' {
+			// Include the punctuation in the result
+			bestCut = i + 1
+			goto done
+		}
+	}
+
+	// Then look for phrase boundary punctuation
+	for i := maxRunes - 1; i >= minRunes; i-- {
+		r := runes[i]
+		if r == '，' || r == ',' || r == '、' || r == '；' || r == ':' || r == '：' || r == '—' || r == '–' || r == '-' {
+			bestCut = i
+			goto done
+		}
+	}
+
+	// Fall back to word boundary (space)
+	for i := maxRunes - 1; i >= minRunes; i-- {
+		if runes[i] == ' ' {
+			bestCut = i
+			goto done
+		}
+	}
+
+	// Last resort: hard cut at maxRunes
+	bestCut = maxRunes
+
+done:
+	result := string(runes[:bestCut])
+	return strings.TrimRight(result, " \t\n\r")
+}
+
+// cleanTrailingChars removes trailing punctuation, spaces, and invisible characters
+func cleanTrailingChars(s string) string {
+	s = strings.TrimRight(s, " \t\n\r")
+	var result strings.Builder
+	for _, r := range s {
+		if unicode.IsPunct(r) {
+			continue
+		}
+		result.WriteRune(r)
+	}
+	return strings.TrimRight(result.String(), " \t")
 }
 
 func (s *Service) processContent(html string) string {

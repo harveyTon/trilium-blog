@@ -1,56 +1,56 @@
 <template>
   <div class="home">
-    <div v-if="loading" class="article-list">
-      <el-skeleton
-        v-for="i in 5"
-        :key="i"
-        :rows="3"
-        animated
-        class="article-skeleton"
-      />
+    <div v-if="loading" class="post-list" aria-busy="true">
+      <div v-for="i in 5" :key="i" class="post-card post-card--skeleton">
+        <div class="skeleton-meta"></div>
+        <div class="skeleton-title"></div>
+        <div class="skeleton-title skeleton-title--short"></div>
+      </div>
     </div>
-    <div v-else class="article-list">
-      <h3 class="article-latest">最新文章</h3>
-      <el-empty v-if="!posts.length" description="暂无已发布文章" />
+
+    <div v-else>
+      <el-empty v-if="!posts.length && !fetchError" description="暂无已发布文章" />
       <div v-if="fetchError" class="fetch-error">
         <p>{{ fetchError }}</p>
         <el-button type="primary" @click="loadPosts">重试</el-button>
       </div>
-      <article
-        v-for="post in posts"
-        :key="post.noteId"
-        class="article-item"
-      >
-        <h2 class="article-title">
-          <router-link :to="{ name: 'Article', params: { noteId: post.noteId } }">
-            {{ post.title }}
-          </router-link>
-        </h2>
-        <div class="article-info">
-          <span>{{ formatDate(post.dateModified) }}</span>
-        </div>
-        <div class="article-more">
-          <router-link :to="{ name: 'Article', params: { noteId: post.noteId } }">
-            阅读全文
-          </router-link>
-        </div>
-      </article>
-      <el-pagination
-        v-if="pagination.totalPages > 1"
-        v-model:current-page="currentPage"
-        :page-size="pagination.pageSize"
-        :total="pagination.total"
-        @current-change="handleCurrentChange"
-        layout="prev, pager, next"
-        background
-        class="pagination"
-      />
+      <nav class="post-list" aria-label="文章列表">
+        <router-link
+          v-for="post in posts"
+          :key="post.noteId"
+          :to="{ name: 'Article', params: { noteId: post.noteId } }"
+          class="post-card"
+          :aria-label="post.title + '，' + formatDate(post.dateModified)"
+        >
+          <div class="post-meta">
+            <time :datetime="post.dateModified">{{ formatDate(post.dateModified) }}</time>
+          </div>
+          <h2 class="post-title">{{ post.title }}</h2>
+          <p v-if="post.summary" class="post-summary">{{ sanitizeSummary(post.summary) }}</p>
+          <div class="post-read-cue" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </router-link>
+      </nav>
+      <div v-if="pagination.totalPages > 1" class="pagination-wrapper">
+        <el-pagination
+          v-model:current-page="currentPage"
+          :page-size="pagination.pageSize"
+          :total="pagination.total"
+          @current-change="handleCurrentChange"
+          :prev-text="'←'" :next-text="'→'"
+          layout="prev, pager, next"
+          :ellipsis-item="'...'"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ElButton, ElEmpty, ElPagination, ElSkeleton } from "element-plus";
+import { ElButton, ElEmpty, ElPagination } from "element-plus";
 import { onMounted, ref, watch } from "vue";
 import { fetchPosts } from "../api/blog";
 import { useSiteStore } from "../store";
@@ -61,7 +61,6 @@ export default {
     ElButton,
     ElEmpty,
     ElPagination,
-    ElSkeleton,
   },
   setup() {
     const siteStore = useSiteStore();
@@ -99,11 +98,24 @@ export default {
     const handleCurrentChange = async (page) => {
       currentPage.value = page;
       await loadPosts();
+      window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     const formatDate = (dateString) => {
       const options = { year: "numeric", month: "long", day: "numeric" };
       return new Date(dateString).toLocaleDateString(undefined, options);
+    };
+
+    const sanitizeSummary = (text) => {
+      if (!text) return "";
+      return text
+        .replace(/\u200b/g, "")
+        .replace(/\u200c/g, "")
+        .replace(/\u200d/g, "")
+        .replace(/\ufeff/g, "")
+        .replace(/\u00ad/g, "")
+        .replace(/\ufffd/g, "")
+        .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "");
     };
 
     const syncTitle = () => {
@@ -127,6 +139,7 @@ export default {
       pagination,
       handleCurrentChange,
       formatDate,
+      sanitizeSummary,
       loadPosts,
     };
   },
@@ -134,96 +147,226 @@ export default {
 </script>
 
 <style scoped>
+/* ── Page shell ── */
 .home {
-  max-width: 1200px;
+  max-width: var(--list-w);
   margin: 0 auto;
+  padding: 0 16px;
 }
 
-a {
-  color: var(--text-primary);
+/* ── List ── */
+.post-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.post-list:focus-within {
+  outline: none;
+}
+
+/* ── Card ── */
+.post-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--border-soft);
   text-decoration: none;
+  transition: border-color 160ms ease;
 }
 
-.article-latest {
-  font-size: 1.5rem;
-  text-align: center;
-  padding-bottom: 20px;
-  position: relative;
-  font-weight: 300;
-  letter-spacing: 2px;
-  margin-bottom: 30px;
+.post-card:first-child {
+  border-top: 1px solid var(--border-soft);
 }
 
-.article-latest::after {
-  content: "";
+.post-card:hover {
+  border-bottom-color: var(--border);
+}
+
+.post-card:hover .post-title {
+  color: var(--link);
+}
+
+.post-card:hover .post-read-cue {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ── Meta ── */
+.post-meta {
+  margin-bottom: 10px;
+}
+
+.post-meta time {
+  color: var(--text-faint);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* ── Title ── */
+.post-title {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(18px, 3vw, 22px);
+  line-height: 1.35;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  padding-right: 40px;
+  transition: color 160ms ease;
+}
+
+/* ── Read cue (right arrow) ── */
+.post-read-cue {
   position: absolute;
-  width: 50px;
-  height: 1px;
-  background: var(--border-color);
-  bottom: 0;
-  left: calc(50% - 25px);
+  right: 0;
+  top: 50%;
+  transform: translateX(-4px) translateY(-50%);
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity 160ms ease, transform 160ms ease;
+  pointer-events: none;
 }
 
-.article-list {
-  display: flex;
-  flex-direction: column;
-  box-shadow: 0 0 12px var(--border-color);
-  background-color: var(--bg-surface);
-  padding: 40px clamp(20px, 4vw, 60px);
-  min-height: 400px;
-}
-
-.article-item {
-  display: flex;
-  flex-direction: column;
-  position: relative;
+/* ── Summary ── */
+.post-summary {
+  margin: 8px 0 0;
+  color: var(--text-soft);
+  font-size: 14px;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  margin-bottom: 40px;
+  padding-right: 40px;
 }
 
-.article-item:last-of-type {
-  margin-bottom: 40px;
+/* ── Skeleton ── */
+.post-card--skeleton {
+  pointer-events: none;
 }
 
-.article-title {
-  margin-bottom: 20px;
-  font-size: clamp(1.3rem, 4vw, 2rem);
-  line-height: 1.4;
-  position: relative;
-  font-weight: bold;
+.skeleton-meta {
+  width: 120px;
+  height: 12px;
+  background: var(--border-soft);
+  border-radius: 4px;
+  margin-bottom: 14px;
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
 }
 
-.article-info {
-  margin-bottom: 24px;
-  color: var(--text-secondary);
+.skeleton-title {
+  width: 70%;
+  height: 20px;
+  background: var(--border-soft);
+  border-radius: 4px;
+  margin-bottom: 8px;
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
 }
 
-.article-more a {
-  background: var(--bg-header-footer);
+.skeleton-title--short {
+  width: 45%;
+  animation-delay: 0.15s;
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* ── Pagination wrapper ── */
+.pagination-wrapper {
+  margin-top: 40px;
+  padding-bottom: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+/* Override Element Plus pagination defaults */
+:deep(.el-pagination) {
+  font-weight: 500;
+  gap: 4px;
+}
+
+:deep(.el-pagination button) {
+  min-width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  color: var(--text-soft);
+  transition: border-color 160ms, color 160ms, background 160ms;
+}
+
+:deep(.el-pagination button:hover) {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--surface);
+}
+
+:deep(.el-pagination .el-pager li) {
+  min-width: 36px;
+  height: 36px;
+  line-height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  color: var(--text-soft);
+  font-weight: 500;
+  transition: border-color 160ms, color 160ms, background 160ms;
+}
+
+:deep(.el-pager li:hover) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+:deep(.el-pager li.is-active) {
+  background: var(--brand);
+  border-color: var(--brand);
   color: var(--text-inverse);
-  padding: 13px 40px;
-  display: inline-block;
-  border: 1px solid var(--bg-header-footer);
-  font-size: 16px;
-  border-radius: 6px;
 }
 
-.article-skeleton {
-  margin-bottom: 30px;
+:deep(.el-pagination .btn-prev),
+:deep(.el-pagination .btn-next) {
+  font-family: inherit;
 }
 
-.pagination {
-  align-self: center;
+html.dark :deep(.el-pagination button),
+html.dark :deep(.el-pagination .el-pager li) {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text-soft);
 }
 
+html.dark :deep(.el-pager li.is-active) {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--text-inverse);
+}
+
+/* ── Fetch error ── */
 .fetch-error {
   text-align: center;
-  color: var(--text-muted);
+  color: var(--text-faint);
   padding: 40px 0;
   font-size: 0.95rem;
 }
 
 .fetch-error .el-button {
   margin-top: 16px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .home {
+    padding: 0 10px;
+  }
+
+  .post-title {
+    font-size: 17px;
+    padding-right: 32px;
+  }
 }
 </style>
