@@ -163,7 +163,7 @@ func TestProcessContent_ImageProxy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := tt.svc.processContent(tt.html)
+			result, _ := tt.svc.processContent(tt.html)
 			if !strings.Contains(result, tt.expectURL) {
 				t.Errorf("\ninput:  %s\noutput: %s\nexpected to contain: %s", tt.html, result, tt.expectURL)
 			}
@@ -225,10 +225,69 @@ func TestProcessContent_RelativeAttachments(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := svc.processContent(tt.html)
+			result, _ := svc.processContent(tt.html)
 			if !strings.Contains(result, tt.expectURL) {
 				t.Errorf("\ninput:  %s\noutput: %s\nexpected to contain: %s", tt.html, result, tt.expectURL)
 			}
 		})
+	}
+}
+
+func TestProcessContent_ExtractsCodeBlockMetadataInOrder(t *testing.T) {
+	svc := &Service{}
+
+	html := `<pre><code class="language-javascript">const answer = 42;</code></pre><p>gap</p><pre><code class="language-text-x-sh">echo "hello"</code></pre>`
+
+	processed, codeBlocks := svc.processContent(html)
+
+	if !strings.Contains(processed, "language-javascript") {
+		t.Fatalf("expected processed html to keep javascript class, got %q", processed)
+	}
+	if len(codeBlocks) != 2 {
+		t.Fatalf("expected 2 code blocks, got %d", len(codeBlocks))
+	}
+	if codeBlocks[0].Index != 0 || codeBlocks[1].Index != 1 {
+		t.Fatalf("expected ordered indexes [0,1], got [%d,%d]", codeBlocks[0].Index, codeBlocks[1].Index)
+	}
+	if codeBlocks[0].LanguageID != "javascript" {
+		t.Fatalf("expected first language to be javascript, got %q", codeBlocks[0].LanguageID)
+	}
+	if codeBlocks[1].LanguageID != "bash" {
+		t.Fatalf("expected second language to be bash, got %q", codeBlocks[1].LanguageID)
+	}
+}
+
+func TestProcessContent_NormalizesKnownLanguageAliases(t *testing.T) {
+	svc := &Service{}
+
+	processed, codeBlocks := svc.processContent(`<pre><code class="language-application-javascript-env-backend">const answer = 42;</code></pre>`)
+
+	if !strings.Contains(processed, "language-javascript") {
+		t.Fatalf("expected alias class to normalize to language-javascript, got %q", processed)
+	}
+	if len(codeBlocks) != 1 {
+		t.Fatalf("expected 1 code block, got %d", len(codeBlocks))
+	}
+	if codeBlocks[0].LanguageID != "javascript" {
+		t.Fatalf("expected normalized language id javascript, got %q", codeBlocks[0].LanguageID)
+	}
+	if codeBlocks[0].DetectedBy != "alias" {
+		t.Fatalf("expected detectedBy alias, got %q", codeBlocks[0].DetectedBy)
+	}
+}
+
+func TestProcessContent_FallsBackToPlaintextForUnknownCode(t *testing.T) {
+	svc := &Service{}
+
+	_, codeBlocks := svc.processContent(`<pre><code>@@@@ //// ???? ####</code></pre>`)
+
+	if len(codeBlocks) != 1 {
+		t.Fatalf("expected 1 code block, got %d", len(codeBlocks))
+	}
+	if codeBlocks[0].LanguageID != "plaintext" {
+		t.Fatalf("expected plaintext fallback, got %q", codeBlocks[0].LanguageID)
+	}
+	if codeBlocks[0].LanguageLabel != "Code" {
+		t.Fatalf("expected fallback label Code, got %q", codeBlocks[0].LanguageLabel)
 	}
 }

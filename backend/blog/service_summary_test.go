@@ -42,7 +42,7 @@ func newBlogTestServer(t *testing.T, noteID, content string) *httptest.Server {
 
 func TestGetPostIgnoresSummaryStoreFailures(t *testing.T) {
 	noteID := "note-1"
-	content := "<h1>Hello</h1><p>This is the article body used for the summary.</p>"
+	content := `<h1>Hello</h1><p>This is the article body used for the summary.</p><pre><code class="language-javascript">const answer = 42;</code></pre>`
 	server := newBlogTestServer(t, noteID, content)
 	defer server.Close()
 
@@ -62,8 +62,47 @@ func TestGetPostIgnoresSummaryStoreFailures(t *testing.T) {
 	if !strings.Contains(post.ContentHTML, "article body") {
 		t.Fatalf("expected article HTML to be preserved, got %q", post.ContentHTML)
 	}
+	if len(post.CodeBlocks) != 1 {
+		t.Fatalf("expected 1 code block, got %d", len(post.CodeBlocks))
+	}
+	if post.CodeBlocks[0].Index != 0 {
+		t.Fatalf("expected first code block index 0, got %d", post.CodeBlocks[0].Index)
+	}
+	if post.CodeBlocks[0].LanguageID != "javascript" {
+		t.Fatalf("expected javascript language id, got %q", post.CodeBlocks[0].LanguageID)
+	}
 	if strings.TrimSpace(post.Summary) == "" {
 		t.Fatalf("expected fallback summary text when summary store fails")
+	}
+}
+
+func TestGetPost_CodeDetectionFailureDoesNotBreakArticle(t *testing.T) {
+	noteID := "note-fallback"
+	content := "<h1>Hello</h1><p>Body stays readable.</p><pre><code>\u0000\u0001\u0002</code></pre>"
+	server := newBlogTestServer(t, noteID, content)
+	defer server.Close()
+
+	service := NewService(
+		etapi.NewClient(server.URL, "token"),
+		&NoopStore{},
+		WithSummaryStore(failingSummaryStore{}),
+	)
+
+	post, err := service.GetPost(noteID)
+	if err != nil {
+		t.Fatalf("expected article fetch to succeed, got error: %v", err)
+	}
+	if post == nil {
+		t.Fatalf("expected post to be returned")
+	}
+	if !strings.Contains(post.ContentHTML, "Body stays readable") {
+		t.Fatalf("expected article body to be preserved, got %q", post.ContentHTML)
+	}
+	if len(post.CodeBlocks) != 1 {
+		t.Fatalf("expected fallback code block metadata, got %d items", len(post.CodeBlocks))
+	}
+	if post.CodeBlocks[0].LanguageID == "" {
+		t.Fatalf("expected fallback language id to be populated")
 	}
 }
 

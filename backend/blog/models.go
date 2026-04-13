@@ -3,14 +3,23 @@ package blog
 import "time"
 
 type Post struct {
-	NoteID       string     `json:"noteId"`
-	Title        string     `json:"title"`
-	DateModified string     `json:"dateModified"`
-	Summary      string     `json:"summary,omitempty"`
-	Summaries    *Summaries `json:"summaries,omitempty"`
-	TOC          []TOCItem  `json:"toc,omitempty"`
-	ContentHTML  string     `json:"contentHtml,omitempty"`
-	PageURL      string     `json:"pageUrl,omitempty"`
+	NoteID       string      `json:"noteId"`
+	Title        string      `json:"title"`
+	DateModified string      `json:"dateModified"`
+	Summary      string      `json:"summary,omitempty"`
+	Summaries    *Summaries  `json:"summaries,omitempty"`
+	TOC          []TOCItem   `json:"toc,omitempty"`
+	CodeBlocks   []CodeBlock `json:"codeBlocks,omitempty"`
+	ContentHTML  string      `json:"contentHtml,omitempty"`
+	PageURL      string      `json:"pageUrl,omitempty"`
+}
+
+type CodeBlock struct {
+	Index           int    `json:"index"`
+	LanguageID      string `json:"languageId"`
+	LanguageLabel   string `json:"languageLabel"`
+	DetectedBy      string `json:"detectedBy,omitempty"`
+	ShowLineNumbers bool   `json:"showLineNumbers"`
 }
 
 type SummaryEntry struct {

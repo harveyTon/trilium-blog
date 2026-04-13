@@ -10,6 +10,7 @@ import (
 	"unicode"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/harveyTon/trilium-blog/backend/etapi"
 	"github.com/microcosm-cc/bluemonday"
 )
@@ -430,7 +431,7 @@ func (s *Service) GetPost(noteId string) (*Post, error) {
 
 	sanitized := s.sanitizeContent(content)
 	toc, modifiedHtml := s.extractTOC(sanitized)
-	processed := s.processContent(modifiedHtml)
+	processed, codeBlocks := s.processContent(modifiedHtml)
 	summaryText := s.extractSummary(sanitized)
 	summaries := s.resolveSummaries(note.NoteID, note.Title, content)
 	if summaries != nil {
@@ -442,6 +443,7 @@ func (s *Service) GetPost(noteId string) (*Post, error) {
 		Title:        note.Title,
 		DateModified: note.DateModified,
 		ContentHTML:  processed,
+		CodeBlocks:   codeBlocks,
 		TOC:          toc,
 		PageURL:      getPageURL(note.Attributes),
 		Summary:      summaryText,
@@ -891,10 +893,10 @@ func cleanTrailingChars(s string) string {
 	return strings.TrimRight(result.String(), " \t")
 }
 
-func (s *Service) processContent(html string) string {
+func (s *Service) processContent(html string) (string, []CodeBlock) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
 	if err != nil {
-		return html
+		return html, nil
 	}
 
 	doc.Find("img").Each(func(i int, sel *goquery.Selection) {
@@ -922,30 +924,185 @@ func (s *Service) processContent(html string) string {
 		sel.SetAttr("src", "/api/imageproxy?url="+url.QueryEscape(src))
 	})
 
-	languageMap := map[string]string{
-		"language-application-javascript-env-frontend": "language-javascript",
-		"language-application-javascript-env-backend":  "language-javascript",
-		"language-text-x-sh":                           "language-bash",
-	}
+	var codeBlocks []CodeBlock
 
 	doc.Find("pre code").Each(func(i int, sel *goquery.Selection) {
-		for oldClass, newClass := range languageMap {
-			if sel.HasClass(oldClass) {
-				sel.RemoveClass(oldClass)
-				sel.AddClass(newClass)
-				break
-			}
-		}
-		if !sel.HasClass("language-") {
-			sel.AddClass("language-text")
-		}
+		codeText := sel.Text()
+		className, _ := sel.Attr("class")
+		languageID, detectedBy := detectCodeBlockLanguage(codeText, className)
+		setCodeLanguageClass(sel, languageID)
+
+		codeBlocks = append(codeBlocks, CodeBlock{
+			Index:           i,
+			LanguageID:      languageID,
+			LanguageLabel:   friendlyLanguageLabel(languageID),
+			DetectedBy:      detectedBy,
+			ShowLineNumbers: true,
+		})
 	})
 
 	result, _ := doc.Find("body").Html()
 	if result == "" {
-		return html
+		return html, codeBlocks
 	}
-	return strings.TrimSpace(result)
+	return strings.TrimSpace(result), codeBlocks
+}
+
+func detectCodeBlockLanguage(codeText, className string) (string, string) {
+	if languageID, detectedBy, ok := normalizeCodeLanguageClass(className); ok {
+		return languageID, detectedBy
+	}
+
+	if strings.TrimSpace(stripControlRunes(codeText)) == "" {
+		return "plaintext", "fallback"
+	}
+
+	lexer := lexers.Analyse(codeText)
+	if lexer == nil {
+		return "plaintext", "fallback"
+	}
+
+	languageID := normalizeLanguageID(lexer.Config().Name)
+	if languageID == "" && len(lexer.Config().Aliases) > 0 {
+		languageID = normalizeLanguageID(lexer.Config().Aliases[0])
+	}
+	if languageID == "" {
+		return "plaintext", "fallback"
+	}
+
+	return languageID, "analyse"
+}
+
+func normalizeCodeLanguageClass(className string) (string, string, bool) {
+	if className == "" {
+		return "", "", false
+	}
+
+	aliasMap := map[string]string{
+		"language-application-javascript-env-frontend": "javascript",
+		"language-application-javascript-env-backend":  "javascript",
+		"language-text-x-sh":                           "bash",
+	}
+
+	for _, classToken := range strings.Fields(className) {
+		if languageID, ok := aliasMap[classToken]; ok {
+			return languageID, "alias", true
+		}
+		if strings.HasPrefix(classToken, "language-") {
+			languageID := normalizeLanguageID(strings.TrimPrefix(classToken, "language-"))
+			if languageID != "" {
+				return languageID, "class", true
+			}
+		}
+	}
+
+	return "", "", false
+}
+
+func normalizeLanguageID(value string) string {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	normalized = strings.ReplaceAll(normalized, "_", "-")
+	normalized = strings.ReplaceAll(normalized, " ", "-")
+
+	switch normalized {
+	case "", "text", "plain-text", "plain", "fallback":
+		return "plaintext"
+	case "shell", "sh", "zsh", "fish", "console":
+		return "bash"
+	case "js":
+		return "javascript"
+	case "ts":
+		return "typescript"
+	case "golang":
+		return "go"
+	}
+
+	return normalized
+}
+
+func friendlyLanguageLabel(languageID string) string {
+	switch languageID {
+	case "javascript":
+		return "JavaScript"
+	case "typescript":
+		return "TypeScript"
+	case "bash":
+		return "Shell"
+	case "go":
+		return "Go"
+	case "json":
+		return "JSON"
+	case "html":
+		return "HTML"
+	case "css":
+		return "CSS"
+	case "yaml":
+		return "YAML"
+	case "markdown":
+		return "Markdown"
+	case "plaintext", "":
+		return "Code"
+	default:
+		return humanizeLanguageLabel(languageID)
+	}
+}
+
+func humanizeLanguageLabel(languageID string) string {
+	parts := strings.FieldsFunc(languageID, func(r rune) bool {
+		return r == '-' || r == '_' || r == '/' || r == '.'
+	})
+	if len(parts) == 0 {
+		return "Code"
+	}
+
+	for i, part := range parts {
+		switch part {
+		case "csharp":
+			parts[i] = "C#"
+		case "cpp":
+			parts[i] = "C++"
+		case "jsx":
+			parts[i] = "JSX"
+		case "tsx":
+			parts[i] = "TSX"
+		case "sql":
+			parts[i] = "SQL"
+		default:
+			runes := []rune(part)
+			if len(runes) == 0 {
+				continue
+			}
+			parts[i] = strings.ToUpper(string(runes[0])) + strings.ToLower(string(runes[1:]))
+		}
+	}
+
+	return strings.Join(parts, " ")
+}
+
+func setCodeLanguageClass(sel *goquery.Selection, languageID string) {
+	className, _ := sel.Attr("class")
+	var kept []string
+	for _, classToken := range strings.Fields(className) {
+		if !strings.HasPrefix(classToken, "language-") {
+			kept = append(kept, classToken)
+		}
+	}
+
+	languageClass := "language-" + languageID
+	kept = append(kept, languageClass)
+	sel.SetAttr("class", strings.Join(kept, " "))
+}
+
+func stripControlRunes(value string) string {
+	return strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' || r == '\t' {
+			return r
+		}
+		if unicode.IsControl(r) {
+			return -1
+		}
+		return r
+	}, value)
 }
 
 func isInternalAssetPath(src, domain string) bool {
