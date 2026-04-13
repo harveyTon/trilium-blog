@@ -298,9 +298,6 @@ export default {
   border-radius: 8px;
 }
 
-.card-header {
-}
-
 .article-title {
   margin: 0 0 16px;
   line-height: 1.3;

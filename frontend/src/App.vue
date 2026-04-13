@@ -329,10 +329,6 @@ html.dark .el-backtop:hover {
     justify-content: space-between;
   }
 
-  .theme-switch {
-    margin-left: 10px;
-  }
-
   .theme-toggle {
     font-size: 20px;
     width: 40px;
