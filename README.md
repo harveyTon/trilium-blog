@@ -127,7 +127,7 @@ docker run -v /path/to/your/config.json:/data/config.json:ro -e CONFIG_PATH=/dat
 
 ## 致谢
 
-- [TriliumNext Notes](https://github.com/TriliumNext/Notes)
+- [TriliumNext Notes](https://github.com/TriliumNext/Trilium)
 - [Trilium Notes](https://github.com/zadam/trilium)
 - [Gin Web Framework](https://github.com/gin-gonic/gin)
 - [Vue.js](https://vuejs.org/)
