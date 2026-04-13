@@ -26,6 +26,22 @@ type PostList struct {
 	TotalPages int    `json:"totalPages"`
 }
 
+type SearchResponse struct {
+	Query string       `json:"query"`
+	Total int          `json:"total"`
+	Items []SearchItem `json:"items"`
+}
+
+type SearchItem struct {
+	Post
+	Match SearchMatch `json:"match"`
+}
+
+type SearchMatch struct {
+	TitleMatched bool   `json:"titleMatched"`
+	Snippet      string `json:"snippet"`
+}
+
 type Site struct {
 	Name       string           `json:"name"`
 	Title      string           `json:"title"`

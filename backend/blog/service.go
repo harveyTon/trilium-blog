@@ -159,6 +159,64 @@ func (s *Service) ListPosts(page int) (*PostList, error) {
 	}, nil
 }
 
+func (s *Service) SearchPosts(query string, preview bool, limit int) (*SearchResponse, error) {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return &SearchResponse{
+			Query: query,
+			Total: 0,
+			Items: []SearchItem{},
+		}, nil
+	}
+
+	notes, err := s.etapiClient.GetNotes("#blog=true")
+	if err != nil {
+		return nil, err
+	}
+
+	candidates := make([]searchCandidate, 0, len(notes))
+	for _, note := range notes {
+		if note.Type != "text" || !hasBlogLabel(note.Attributes) {
+			continue
+		}
+		content, err := s.etapiClient.GetNoteContent(note.NoteID)
+		if err != nil {
+			continue
+		}
+		candidate, ok := isSearchMatch(note, content, query)
+		if !ok {
+			continue
+		}
+		candidates = append(candidates, candidate)
+	}
+
+	sortSearchCandidates(candidates)
+
+	total := len(candidates)
+	if preview {
+		if limit <= 0 {
+			limit = 5
+		}
+		if total > limit {
+			candidates = candidates[:limit]
+		}
+	}
+
+	items := make([]SearchItem, 0, len(candidates))
+	for _, candidate := range candidates {
+		items = append(items, SearchItem{
+			Post:  candidate.Post,
+			Match: buildSearchMatch(candidate.Post, candidate.PlainText, query),
+		})
+	}
+
+	return &SearchResponse{
+		Query: query,
+		Total: total,
+		Items: items,
+	}, nil
+}
+
 func (s *Service) GenerateSitemap() (string, error) {
 	notes, err := s.etapiClient.GetNotes("#blog=true")
 	if err != nil {
@@ -252,6 +310,40 @@ func getPageURL(attrs []etapi.Attribute) string {
 		}
 	}
 	return ""
+}
+
+func sanitizeSearchContent(html string) string {
+	p := bluemonday.UGCPolicy()
+	return string(p.SanitizeBytes([]byte(html)))
+}
+
+func htmlToPlainText(html string) string {
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
+	if err != nil {
+		return ""
+	}
+
+	doc.Find("pre, code, style, script, svg, canvas, video, audio").Each(func(i int, sel *goquery.Selection) {
+		sel.Remove()
+	})
+	doc.Find("a").Each(func(i int, sel *goquery.Selection) {
+		text := strings.TrimSpace(sel.Text())
+		sel.ReplaceWithHtml(text)
+	})
+
+	return strings.TrimSpace(doc.Text())
+}
+
+func extractSearchSummary(text string) string {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return ""
+	}
+	runes := []rune(text)
+	if len(runes) <= 120 {
+		return text
+	}
+	return strings.TrimSpace(string(runes[:120])) + "..."
 }
 
 func (s *Service) sanitizeContent(html string) string {

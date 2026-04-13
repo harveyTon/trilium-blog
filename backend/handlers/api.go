@@ -42,6 +42,24 @@ func (h *APIHandler) ListPosts(c *gin.Context) {
 	c.JSON(http.StatusOK, posts)
 }
 
+func (h *APIHandler) SearchPosts(c *gin.Context) {
+	query := strings.TrimSpace(c.Query("q"))
+	preview := c.DefaultQuery("preview", "false") == "true"
+	limitStr := c.DefaultQuery("limit", "5")
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 {
+		limit = 5
+	}
+
+	result, err := h.service.SearchPosts(query, preview, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search posts"})
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 func (h *APIHandler) GetPost(c *gin.Context) {
 	noteId := c.Param("noteId")
 
