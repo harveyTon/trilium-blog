@@ -1,133 +1,86 @@
 # Trilium Blog
 
-Trilium Blog 是一个基于 Trilium Notes 的轻量级博客系统。它允许您将 Trilium Notes 中的笔记轻松转换为公开的博客文章，并提供了现代化的前端界面。
+基于 [TriliumNext Notes](https://github.com/TriliumNext/Trilium) 的轻量级博客系统。将 Trilium 中标记为 `#blog=true` 的笔记发布为博客文章。
 
 ## 特性
 
-- 与 Trilium Notes 无缝集成
-- 支持分页的文章列表
-- 单独的文章页面
-- 支持代码高亮（使用 Prism.js）
-- 内置评论系统（使用 Artalk）
-- 响应式设计，适配移动设备
-- 自动生成 sitemap.xml 和 robots.txt
-- 可配置的博客名称和域名
-- 暗黑模式支持
-- 文章目录导航
-- 图片灯箱效果（使用 Fancybox）
+- 与 Trilium Notes 无缝集成（通过 ETAPI）
+- 分页文章列表 + 文章详情页
+- 代码高亮（highlight.js，按需引入）
+- 文章目录导航（TOC）
+- 图片灯箱（Fancybox）
+- 可选图片代理（外部代理或内置 fallback）
+- 内置评论系统（Artalk，可配置）
+- 暗黑模式（Dark / Light 同等支持）
+- 响应式设计
+- sitemap.xml / robots.txt
 
-## 技术栈
+## 快速开始
 
-### 后端
-
-- Go 1.23+
-- Gin Web Framework
-- Redis (用于缓存)
-
-### 前端
-
-- Vue 3
-- Vite
-- Element Plus
-- Axios
-- Pinia
-- Vue Router
-- Artalk
-- Fancybox
-- Prism.js
-
-## 前置要求
-
-- Docker
-- Docker Compose
-- Go 1.23+ (用于开发)
-
-## 安装和运行
-
-1. 克隆仓库：
-
-   ```
-   git clone https://github.com/harveyTon/trilium-blog.git
-   cd trilium-blog
-   ```
-
-2. 复制并编辑配置文件：
-
-   ```
-   cp ./backend/config-example.json ./backend/config.json
-   ```
-
-   编辑 `config.json`，填入您的 Trilium API URL、Token 和其他设置。
-
-3. 使用 Docker Compose 构建和启动项目：
-
-   ```
-   docker-compose up -d --build
-   ```
-
-4. 访问 `http://localhost:8080`（或您配置的其他端口）来查看博客。
-
-### Docker 运行时配置
-
-容器默认从 `/app/config.json` 读取配置文件。运行容器时通过卷挂载提供配置：
+### Docker Compose（推荐）
 
 ```bash
-docker run -v /path/to/your/config.json:/app/config.json:ro -p 8080:8080 trilium-blog
+git clone https://github.com/harveyTon/trilium-blog.git
+cd trilium-blog
+
+# 创建配置文件
+cp .env.example .env
+# 编辑 .env，填入 TRILIUM_API_URL、TRILIUM_TOKEN 等
+vim .env
+
+docker compose up -d --build
 ```
 
-或通过 `CONFIG_PATH` 环境变量指定其他路径：
+访问 `http://localhost:8080`（端口可通过 `.env` 中的 `PORT` 修改）。
+
+### 本地开发
+
+**后端**（需要 Go 1.25+）：
 
 ```bash
-docker run -v /path/to/your/config.json:/data/config.json:ro -e CONFIG_PATH=/data/config.json -p 8080:8080 trilium-blog
+cd backend
+go mod download
+# 设置环境变量或 export TRILIUM_API_URL=... TRILIUM_TOKEN=... 等
+go run main.go
 ```
 
-本地开发时（直接运行 `go run main.go`），应用自动使用 `backend/config.json`。
+**前端**（需要 Node 24+）：
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ## 配置
 
-## 配置
+所有配置通过环境变量（`.env` 文件）管理：
 
-1. 在 `config.json` 中配置您的博客信息、Trilium API 设置等。
-2. 在 `frontend/src/views/Article.vue` 中配置 Artalk 评论系统。
-3. 根据需要修改 `docker-compose.yml` 文件以适应您的环境。
+| 变量 | 必填 | 默认值 | 说明 |
+|------|------|--------|------|
+| `TRILIUM_API_URL` | 是 | — | Trilium ETAPI 地址 |
+| `TRILIUM_TOKEN` | 是 | — | ETAPI Token |
+| `BLOG_NAME` | 否 | — | 博客名称 |
+| `BLOG_TITLE` | 否 | — | 页面标题 |
+| `DOMAIN` | 否 | — | 博客域名（用于内部资产判断） |
+| `ARTICLES_PER_PAGE` | 否 | `9` | 每页文章数 |
+| `PORT` | 否 | `8080` | 服务端口 |
+| `IMAGE_PROXY_ENABLED` | 否 | `false` | 启用外部图片代理 |
+| `IMAGE_PROXY_BASE_URL` | 否 | — | 外部图片代理 URL（留空则使用内置 `/api/imageproxy`） |
 
 ## 使用
 
-1. 在 Trilium Notes 中，为要发布为博客文章的笔记添加 `#blog=true` 属性。
-2. 访问您配置的博客地址以查看发布的文章。
+在 Trilium Notes 中，为要发布的笔记添加 `#blog=true` 属性，博客会自动展示。
 
-## 开发
+## 技术栈
 
-如果您想在本地进行开发：
+**后端：** Go 1.25 / Gin / goquery / bluemonday
 
-### 后端
-
-1. 安装 Go 1.23+
-2. 运行 `go mod tidy` 安装依赖
-3. 运行 `go run main.go` 启动后端服务器
-
-### 前端
-
-1. 进入 `frontend` 目录
-2. 运行 `npm install` 安装依赖
-3. 运行 `npm run dev` 启动开发服务器
-
-## 自定义
-
-- 修改 `frontend/src/components/` 目录中的 Vue 组件以自定义页面布局和样式。
-- 调整 `config.json` 中的设置以更改博客名称、域名等。
-
-## 贡献
-
-欢迎提交 Pull Requests 来改进这个项目。对于重大更改，请先开一个 issue 讨论您想要改变的内容。
-
-## 许可证
-
-本项目采用 MIT 许可证。详情请见 [LICENSE](LICENSE) 文件。
+**前端：** Vue 3 / Vite / Element Plus / Pinia / Vue Router / Artalk / Fancybox / highlight.js
 
 ## 致谢
 
-- [TriliumNext Notes](https://github.com/TriliumNext/Trilium)
+- [Trilium](https://github.com/TriliumNext/Trilium)
 - [Trilium Notes](https://github.com/zadam/trilium)
 - [Gin Web Framework](https://github.com/gin-gonic/gin)
 - [Vue.js](https://vuejs.org/)
@@ -135,3 +88,7 @@ docker run -v /path/to/your/config.json:/data/config.json:ro -e CONFIG_PATH=/dat
 - [Artalk](https://github.com/ArtalkJS/Artalk)
 - [Fancybox](https://fancyapps.com/fancybox/)
 - [highlight.js](https://github.com/highlightjs/highlight.js)
+
+## 许可证
+
+[MIT](LICENSE)
