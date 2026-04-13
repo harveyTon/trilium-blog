@@ -7,7 +7,7 @@
 
     <div class="featured-carousel">
       <button
-        v-if="showControls"
+        v-if="showDesktopControls"
         class="featured-nav featured-nav--prev"
         type="button"
         aria-label="查看上一组精选文章"
@@ -34,7 +34,7 @@
       </div>
 
       <button
-        v-if="showControls"
+        v-if="showDesktopControls"
         class="featured-nav featured-nav--next"
         type="button"
         aria-label="查看下一组精选文章"
@@ -44,12 +44,15 @@
       </button>
     </div>
 
-    <div v-if="showControls" class="featured-dots" aria-hidden="true">
-      <span
+    <div v-if="showControls" class="featured-dots">
+      <button
         v-for="page in totalPages"
         :key="page"
+        type="button"
+        :aria-label="`切换到第 ${page} 组精选文章`"
         :class="['featured-dot', { 'is-active': page - 1 === currentPage }]"
-      ></span>
+        @click="goToPage(page - 1)"
+      ></button>
     </div>
   </section>
 </template>
@@ -80,6 +83,7 @@ export default {
 
     const totalPages = computed(() => Math.max(1, props.items.length - visibleCount.value + 1));
     const showControls = computed(() => props.items.length > visibleCount.value);
+    const showDesktopControls = computed(() => showControls.value && visibleCount.value > 1);
     const maxPage = computed(() => Math.max(0, totalPages.value - 1));
     const trackStyle = computed(() => ({
       transform: `translateX(calc(-1 * ${currentPage.value} * (100% + var(--featured-gap)) / ${visibleCount.value}))`,
@@ -99,6 +103,10 @@ export default {
 
     const goNext = () => {
       currentPage.value = currentPage.value >= maxPage.value ? 0 : currentPage.value + 1;
+    };
+
+    const goToPage = (page) => {
+      currentPage.value = Math.max(0, Math.min(page, maxPage.value));
     };
 
     const handleTouchStart = (event) => {
@@ -133,10 +141,12 @@ export default {
       currentPage,
       totalPages,
       showControls,
+      showDesktopControls,
       trackStyle,
       itemStyle,
       goPrev,
       goNext,
+      goToPage,
       handleTouchStart,
       handleTouchEnd,
     };
@@ -175,15 +185,13 @@ export default {
 .featured-carousel {
   --featured-gap: 16px;
   position: relative;
-  display: flex;
-  align-items: center;
-  gap: 14px;
+  width: 100%;
 }
 
 .featured-viewport {
   overflow: hidden;
-  flex: 1;
   min-width: 0;
+  width: 100%;
 }
 
 .featured-track {
@@ -207,6 +215,9 @@ export default {
 }
 
 .featured-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
   width: 42px;
   height: 42px;
   border: 1px solid var(--border-soft);
@@ -219,15 +230,32 @@ export default {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  flex-shrink: 0;
   box-shadow: var(--shadow-sm);
   transition: transform 0.16s ease, border-color 0.16s ease, color 0.16s ease;
 }
 
+.featured-nav--prev {
+  left: -21px;
+  transform: translate(-100%, -50%);
+}
+
+.featured-nav--next {
+  right: -21px;
+  transform: translate(100%, -50%);
+}
+
 .featured-nav:hover {
-  transform: translateY(-1px);
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.featured-nav--prev:hover {
+  transform: translate(-100%, calc(-50% - 1px));
+}
+
+.featured-nav--next:hover {
+  transform: translate(100%, calc(-50% - 1px));
+  border-color: var(--accent);
 }
 
 .featured-dots {
@@ -239,9 +267,12 @@ export default {
 .featured-dot {
   width: 8px;
   height: 8px;
+  padding: 0;
+  border: 0;
   border-radius: 999px;
   background: var(--border);
   transition: transform 0.18s ease, background 0.18s ease;
+  cursor: pointer;
 }
 
 .featured-dot.is-active {
@@ -252,13 +283,10 @@ export default {
 @media (max-width: 768px) {
   .featured-carousel {
     --featured-gap: 12px;
-    gap: 10px;
   }
 
   .featured-nav {
-    width: 36px;
-    height: 36px;
-    font-size: 24px;
+    display: none;
   }
 
   .featured-heading {
