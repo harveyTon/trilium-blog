@@ -156,7 +156,7 @@ func (s *Service) ListPosts(page int) (*PostList, error) {
 			summary := s.extractSummary(sanitized)
 			mu.Lock()
 			pagePosts[idx].Summary = summary
-			summaries := s.resolveSummaries(pagePosts[idx].NoteID, content)
+			summaries := s.resolveSummaries(pagePosts[idx].NoteID, pagePosts[idx].Title, content)
 			if summaries != nil {
 				pagePosts[idx].Summaries = summaries
 				pagePosts[idx].Summary = preferredSummaryText(summaries, summary)
@@ -207,7 +207,7 @@ func (s *Service) SearchPosts(query string, preview bool, limit int) (*SearchRes
 		if !ok {
 			continue
 		}
-		summaries, sumErr := s.ensureSummaries(note.NoteID, content)
+		summaries, sumErr := s.ensureSummaries(note.NoteID, note.Title, content)
 		if sumErr == nil {
 			candidate.Post.Summaries = summaries
 			candidate.Post.Summary = preferredSummaryText(summaries, candidate.Post.Summary)
@@ -263,7 +263,7 @@ func (s *Service) ListFeaturedPosts() ([]Post, error) {
 		content, err := s.etapiClient.GetNoteContent(note.NoteID)
 		if err == nil {
 			post.Summary = s.extractSummary(s.sanitizeContent(content))
-			summaries := s.resolveSummaries(note.NoteID, content)
+			summaries := s.resolveSummaries(note.NoteID, note.Title, content)
 			if summaries != nil {
 				post.Summaries = summaries
 				post.Summary = preferredSummaryText(summaries, post.Summary)
@@ -329,7 +329,7 @@ func (s *Service) GetPost(noteId string) (*Post, error) {
 	toc, modifiedHtml := s.extractTOC(sanitized)
 	processed := s.processContent(modifiedHtml)
 	summaryText := s.extractSummary(sanitized)
-	summaries := s.resolveSummaries(note.NoteID, content)
+	summaries := s.resolveSummaries(note.NoteID, note.Title, content)
 	if summaries != nil {
 		summaryText = preferredSummaryText(summaries, summaryText)
 	}
@@ -360,7 +360,7 @@ func (s *Service) GetPostSummaries(noteId string) (*Summaries, error) {
 		return nil, err
 	}
 
-	return s.resolveSummaries(note.NoteID, content), nil
+	return s.resolveSummaries(note.NoteID, note.Title, content), nil
 }
 
 func (s *Service) GetAsset(attachmentId string) ([]byte, string, error) {

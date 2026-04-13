@@ -10,6 +10,8 @@ services:
       - .env
     environment:
       - TZ=Asia/Shanghai
+    volumes:
+      - trilium-blog-data:/app/data
     depends_on:
       - redis
     networks:
@@ -29,4 +31,5 @@ networks:
     driver: bridge
 
 volumes:
+  trilium-blog-data:
   redis-data:

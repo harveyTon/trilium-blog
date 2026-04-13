@@ -1,64 +1,54 @@
 <template>
   <div class="home">
-    <section class="home-intro">
-      <p class="home-kicker">内容入口</p>
-      <h1 class="home-title">搜索、精选与最新文章</h1>
-      <p class="home-description">
-        先搜索，再浏览精选，最后顺着时间线继续阅读。
-      </p>
-      <div class="home-search-entry">
-        <GlobalSearchBox />
-      </div>
-    </section>
-
-    <div v-if="loading" class="post-list" aria-busy="true">
-      <div v-for="i in 5" :key="i" class="post-item post-item--skeleton">
-        <div class="skeleton-date"></div>
-        <div class="skeleton-right">
-          <div class="skeleton-title"></div>
-          <div class="skeleton-line"></div>
-          <div class="skeleton-meta"></div>
-          <div class="skeleton-summary"></div>
-        </div>
-      </div>
+    <div class="home-sections">
+      <FeaturedSection :items="featuredPosts" />
     </div>
 
-    <div v-else class="home-sections">
-      <div v-if="fetchError" class="fetch-error">
+    <section class="home-feed-section">
+      <div class="home-section-header">
+        <p class="home-section-kicker">按更新时间浏览</p>
+        <h1 class="home-section-title">最新文章</h1>
+      </div>
+
+      <div v-if="loading" class="post-list" aria-busy="true">
+        <div v-for="i in 5" :key="i" class="post-item post-item--skeleton">
+          <div class="skeleton-date"></div>
+          <div class="skeleton-right">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-line"></div>
+            <div class="skeleton-meta"></div>
+            <div class="skeleton-summary"></div>
+          </div>
+        </div>
+      </div>
+
+      <div v-else-if="fetchError" class="fetch-error">
         <p>{{ fetchError }}</p>
         <el-button type="primary" @click="loadPosts">重试</el-button>
       </div>
 
-      <FeaturedSection :items="featuredPosts" />
+      <el-empty v-else-if="!posts.length" description="暂无已发布文章" />
+      <PostFeed
+        v-else
+        :items="posts"
+        :get-day="getDay"
+        :get-month="getMonth"
+        :format-full-date="formatFullDate"
+        :sanitize-summary="sanitizeSummary"
+      />
+    </section>
 
-      <section class="home-feed-section">
-        <div class="home-section-header">
-          <p class="home-section-kicker">最新文章</p>
-          <h2 class="home-section-title">按更新时间浏览</h2>
-        </div>
-
-        <el-empty v-if="!posts.length && !fetchError" description="暂无已发布文章" />
-        <PostFeed
-          v-else
-          :items="posts"
-          :get-day="getDay"
-          :get-month="getMonth"
-          :format-full-date="formatFullDate"
-          :sanitize-summary="sanitizeSummary"
-        />
-      </section>
-
-      <div v-if="pagination.totalPages > 1" class="pagination-wrapper">
-        <el-pagination
-          v-model:current-page="currentPage"
-          :page-size="pagination.pageSize"
-          :total="pagination.total"
-          @current-change="handleCurrentChange"
-          :prev-text="'←'" :next-text="'→'"
-          layout="prev, pager, next"
-          :ellipsis-item="'...'"
-        />
-      </div>
+    <div v-if="pagination.totalPages > 1" class="pagination-wrapper">
+      <el-pagination
+        v-model:current-page="currentPage"
+        :page-size="pagination.pageSize"
+        :total="pagination.total"
+        @current-change="handleCurrentChange"
+        :prev-text="'←'"
+        :next-text="'→'"
+        layout="prev, pager, next"
+        :ellipsis-item="'...'"
+      />
     </div>
   </div>
 </template>
@@ -66,11 +56,17 @@
 <script>
 import { ElButton, ElEmpty, ElPagination } from "element-plus";
 import { onMounted, ref, watch } from "vue";
-import GlobalSearchBox from "../components/app/GlobalSearchBox.vue";
+import { useRoute, useRouter } from "vue-router";
 import FeaturedSection from "../components/home/FeaturedSection.vue";
 import PostFeed from "../components/home/PostFeed.vue";
 import { fetchFeaturedPosts, fetchPosts } from "../api/blog";
 import { useSiteStore } from "../store";
+
+const parsePageQuery = (value) => {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const page = Number.parseInt(raw || "1", 10);
+  return Number.isFinite(page) && page > 0 ? page : 1;
+};
 
 export default {
   name: "HomePage",
@@ -78,17 +74,20 @@ export default {
     ElButton,
     ElEmpty,
     ElPagination,
-    GlobalSearchBox,
     FeaturedSection,
     PostFeed,
   },
   setup() {
+    const route = useRoute();
+    const router = useRouter();
     const siteStore = useSiteStore();
     const posts = ref([]);
     const featuredPosts = ref([]);
     const loading = ref(true);
     const fetchError = ref(null);
-    const currentPage = ref(1);
+    const currentPage = ref(parsePageQuery(route.query.page));
+    const featuredLoaded = ref(false);
+    const loadedPage = ref(0);
     const pagination = ref({
       page: 1,
       pageSize: 9,
@@ -96,16 +95,27 @@ export default {
       totalPages: 0,
     });
 
-    const loadPosts = async () => {
+    const loadFeaturedPosts = async () => {
+      if (featuredLoaded.value) {
+        return;
+      }
+      try {
+        const featuredResponse = await fetchFeaturedPosts();
+        featuredPosts.value = featuredResponse.items || [];
+        featuredLoaded.value = true;
+      } catch {
+        featuredPosts.value = [];
+      }
+    };
+
+    const loadPosts = async (page = currentPage.value) => {
       loading.value = true;
       fetchError.value = null;
       try {
-        const [postResponse, featuredResponse] = await Promise.all([
-          fetchPosts(currentPage.value),
-          fetchFeaturedPosts(),
-        ]);
+        const postResponse = await fetchPosts(page);
         posts.value = postResponse.items;
-        featuredPosts.value = featuredResponse.items || [];
+        currentPage.value = postResponse.page;
+        loadedPage.value = postResponse.page;
         pagination.value = {
           page: postResponse.page,
           pageSize: postResponse.pageSize,
@@ -115,15 +125,14 @@ export default {
       } catch {
         fetchError.value = "加载失败，请检查网络后重试";
         posts.value = [];
-        featuredPosts.value = [];
       } finally {
         loading.value = false;
       }
     };
 
     const handleCurrentChange = async (page) => {
-      currentPage.value = page;
-      await loadPosts();
+      const query = page > 1 ? { page: String(page) } : {};
+      await router.push({ name: "HomePage", query });
       window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
@@ -166,9 +175,22 @@ export default {
     };
 
     onMounted(async () => {
-      await loadPosts();
+      await loadFeaturedPosts();
+      await loadPosts(currentPage.value);
       syncTitle();
     });
+
+    watch(
+      () => route.query.page,
+      async (nextPage) => {
+        const parsedPage = parsePageQuery(nextPage);
+        if (parsedPage === loadedPage.value && posts.value.length) {
+          return;
+        }
+        currentPage.value = parsedPage;
+        await loadPosts(parsedPage);
+      }
+    );
 
     watch(() => siteStore.site.title, syncTitle, { immediate: true });
 
@@ -194,59 +216,7 @@ export default {
 .home {
   max-width: var(--list-w);
   margin: 0 auto;
-  padding: 0 16px 32px;
-}
-
-.home-intro {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 16px 0 28px;
-}
-
-.home-kicker,
-.home-section-kicker {
-  margin: 0;
-  font-size: 12px;
-  color: var(--text-faint);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.home-title,
-.home-section-title {
-  margin: 0;
-  color: var(--text);
-}
-
-.home-title {
-  font-size: clamp(30px, 4vw, 42px);
-  line-height: 1.16;
-}
-
-.home-description {
-  margin: 0;
-  color: var(--text-soft);
-  line-height: 1.7;
-}
-
-.home-search-entry {
-  margin-top: 8px;
-}
-
-.home-search-entry :deep(.global-search) {
-  width: min(560px, 100%);
-}
-
-.home-search-entry :deep(.global-search-input) {
-  border-color: var(--border-soft);
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-sm);
-}
-
-.home-search-entry :deep(.global-search-input::placeholder) {
-  color: var(--text-faint);
+  padding: 10px 16px 32px;
 }
 
 .home-sections {
@@ -259,12 +229,28 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  margin-top: 44px;
 }
 
 .home-section-header {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.home-section-kicker {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.home-section-title {
+  margin: 0;
+  color: var(--text);
+  font-size: clamp(30px, 4vw, 42px);
+  line-height: 1.16;
 }
 
 .post-list {
@@ -338,8 +324,8 @@ export default {
 }
 
 .pagination-wrapper {
-  margin-top: 4px;
-  padding-bottom: 24px;
+  margin: 20px 0 8px;
+  padding-bottom: 12px;
   display: flex;
   justify-content: center;
 }
@@ -422,8 +408,12 @@ html.dark :deep(.el-pager li.is-active) {
     padding: 0 10px 32px;
   }
 
-  .home-title {
+  .home-section-title {
     font-size: 28px;
+  }
+
+  .home-feed-section {
+    margin-top: 34px;
   }
 
   .post-item--skeleton {

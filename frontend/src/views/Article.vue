@@ -229,6 +229,15 @@ export default {
       };
     };
 
+    const refreshSummaryStatus = async (noteId) => {
+      const summaries = await fetchPostSummary(noteId);
+      if (route.params.noteId !== noteId || !post.value) {
+        return null;
+      }
+      syncSummary(summaries);
+      return summaries;
+    };
+
     const pollSummaryStatus = (noteId) => {
       stopSummaryPolling();
       if (!shouldPollSummary()) {
@@ -237,11 +246,7 @@ export default {
 
       summaryPollTimer = window.setTimeout(async () => {
         try {
-          const summaries = await fetchPostSummary(noteId);
-          if (route.params.noteId !== noteId || !post.value) {
-            return;
-          }
-          syncSummary(summaries);
+          await refreshSummaryStatus(noteId);
         } catch (error) {
           console.error("Failed to poll post summary:", error);
         } finally {
@@ -274,6 +279,13 @@ export default {
         const fetchedPost = await fetchPost(route.params.noteId);
         post.value = fetchedPost;
         summarySource.value = fetchedPost;
+        if (normalizeSummaryPayload(fetchedPost).aiEnabled) {
+          try {
+            await refreshSummaryStatus(route.params.noteId);
+          } catch (error) {
+            console.error("Failed to fetch initial post summary:", error);
+          }
+        }
         await enhanceContent();
         syncTitle();
         pollSummaryStatus(route.params.noteId);

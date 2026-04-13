@@ -48,8 +48,8 @@ func extractSummaryFromSanitizedContent(sanitized string) string {
 	return (&Service{}).extractSummary(sanitized)
 }
 
-func (s *Service) resolveSummaries(noteID, content string) *Summaries {
-	summaries, err := s.ensureSummaries(noteID, content)
+func (s *Service) resolveSummaries(noteID, title, content string) *Summaries {
+	summaries, err := s.ensureSummaries(noteID, title, content)
 	if err == nil {
 		return summaries
 	}
@@ -57,7 +57,7 @@ func (s *Service) resolveSummaries(noteID, content string) *Summaries {
 	return fallbackSummaries(noteID, content)
 }
 
-func (s *Service) ensureSummaries(noteID, content string) (*Summaries, error) {
+func (s *Service) ensureSummaries(noteID, title, content string) (*Summaries, error) {
 	if s.summaryStore == nil {
 		return fallbackSummaries(noteID, content), nil
 	}
@@ -98,6 +98,7 @@ func (s *Service) ensureSummaries(noteID, content string) (*Summaries, error) {
 			})
 			s.aiQueue.Enqueue(AISummaryJob{
 				NoteID:     noteID,
+				Title:      title,
 				Content:    content,
 				SourceHash: hash,
 			})

@@ -14,6 +14,7 @@ import (
 
 type AISummaryJob struct {
 	NoteID     string
+	Title      string
 	Content    string
 	SourceHash string
 }
@@ -104,7 +105,7 @@ func (q *AISummaryQueue) worker() {
 			SourceHash: job.SourceHash,
 			Content:    "",
 		})
-		content, err := q.generate(job.Content)
+		content, err := q.generate(job.Title, job.Content)
 		if err != nil {
 			_ = q.store.UpsertSummary(StoredSummary{
 				NoteID:     job.NoteID,
@@ -133,7 +134,7 @@ func (q *AISummaryQueue) worker() {
 	}
 }
 
-func (q *AISummaryQueue) generate(content string) (string, error) {
+func (q *AISummaryQueue) generate(title, content string) (string, error) {
 	if q.provider != "" && q.provider != "openai-compatible" {
 		return "", fmt.Errorf("unsupported ai summary provider: %s", q.provider)
 	}
@@ -146,7 +147,7 @@ func (q *AISummaryQueue) generate(content string) (string, error) {
 		"model": q.model,
 		"messages": []map[string]string{
 			{"role": "system", "content": q.prompt},
-			{"role": "user", "content": content},
+			{"role": "user", "content": buildAISummaryInput(title, content)},
 		},
 	}
 
@@ -186,6 +187,15 @@ func (q *AISummaryQueue) generate(content string) (string, error) {
 		return "", fmt.Errorf("ai provider returned no choices")
 	}
 	return strings.TrimSpace(result.Choices[0].Message.Content), nil
+}
+
+func buildAISummaryInput(title, content string) string {
+	content = clampSummaryInput(content, 0)
+	title = strings.TrimSpace(title)
+	if title == "" {
+		return content
+	}
+	return strings.TrimSpace("Title: " + title + "\n\nContent:\n" + content)
 }
 
 func clampSummaryInput(content string, maxRunes int) string {
