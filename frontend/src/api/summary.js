@@ -7,6 +7,14 @@ export function normalizeSummaryPayload(post) {
     };
   }
 
+  if (post.summaries && typeof post.summaries === "object") {
+    return {
+      ai: post.summaries.ai || null,
+      code: post.summaries.code || null,
+      fallback: post.summaries.fallback || post.summary || "",
+    };
+  }
+
   if (typeof post.summary === "string") {
     return {
       ai: null,
