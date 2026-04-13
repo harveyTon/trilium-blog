@@ -72,6 +72,15 @@ function setupGallery() {
   Fancybox.bind("[data-fancybox]", {});
 }
 
+function enhanceImageGroups() {
+  document.querySelectorAll(".article-content p, .article-content figure, .article-content div").forEach((container) => {
+    const images = container.querySelectorAll(":scope > a[data-fancybox] > img, :scope > img");
+    if (images.length >= 2) {
+      container.classList.add("image-gallery-group");
+    }
+  });
+}
+
 export function useArticleEnhancements({ hljs, applyHighlightTheme }) {
   const enhanceCodeBlocks = () => {
     applyHighlightTheme();
@@ -97,6 +106,7 @@ export function useArticleEnhancements({ hljs, applyHighlightTheme }) {
   const enhanceArticleContent = () => {
     enhanceCodeBlocks();
     setupGallery();
+    enhanceImageGroups();
   };
 
   return {

@@ -73,6 +73,7 @@ import ReadingProgressBar from "../components/app/ReadingProgressBar.vue";
 import ArticleContent from "../components/article/ArticleContent.vue";
 import CodeBlockEnhancer from "../components/article/CodeBlockEnhancer.vue";
 import ArticleHeader from "../components/article/ArticleHeader.vue";
+import ImageGalleryGroup from "../components/article/ImageGalleryGroup.vue";
 import ArticleSummaryBlock from "../components/article/ArticleSummaryBlock.vue";
 import ArticleTOC from "../components/article/ArticleTOC.vue";
 import SourceLinkBlock from "../components/article/SourceLinkBlock.vue";
@@ -87,6 +88,7 @@ export default {
     ArticleContent,
     CodeBlockEnhancer,
     ArticleHeader,
+    ImageGalleryGroup,
     ArticleSummaryBlock,
     ArticleTOC,
     ReadingProgressBar,
@@ -463,6 +465,18 @@ export default {
   border-radius: var(--radius-sm);
   display: block;
   margin: 8px 0;
+}
+
+.article-content .image-gallery-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.article-content .image-gallery-group img {
+  width: 100%;
+  margin: 0;
 }
 
 .article-content blockquote {
