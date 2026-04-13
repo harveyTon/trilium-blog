@@ -8,6 +8,7 @@ AGENTS.md
 .agents/
 .claude/
 .playwright-cli/
+.worktrees/
 skills-lock.json
 backend/logs/
 backend/trilium-blog
