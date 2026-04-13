@@ -523,6 +523,7 @@ export default {
 
 .article-content table {
   width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
   margin: 24px 0 32px;
   font-size: 15px;
@@ -536,6 +537,7 @@ export default {
   text-align: left;
   vertical-align: top;
   white-space: nowrap;
+  word-break: normal;
 }
 
 .article-content th {
