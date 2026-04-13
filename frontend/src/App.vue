@@ -246,6 +246,10 @@ body {
 }
 
 @media (max-width: 768px) {
+  :root {
+    --header-h: 50px;
+  }
+
   .header-content,
   .footer-content,
   .main-content {

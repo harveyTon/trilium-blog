@@ -1,13 +1,24 @@
 <template>
   <el-header class="app-header">
     <div class="header-content">
+      <button
+        class="search-toggle"
+        type="button"
+        aria-label="打开搜索"
+        @click="mobileSearchOpen = true"
+      >
+        <el-icon><Search /></el-icon>
+      </button>
+
       <router-link :to="{ name: 'HomePage' }" class="blog-brand">
         <img :src="logoSrc" :alt="site.name + ' - 返回首页'" class="blog-logo" />
         <span class="blog-title">{{ site.name }}</span>
       </router-link>
+
       <div class="header-search">
         <GlobalSearchBox />
       </div>
+
       <button
         class="theme-toggle"
         :aria-label="isDark ? '切换到亮色模式' : '切换到暗色模式'"
@@ -18,12 +29,33 @@
         </el-icon>
       </button>
     </div>
+
+    <transition name="mobile-search-fade">
+      <div v-if="mobileSearchOpen" class="mobile-search-modal" @click.self="mobileSearchOpen = false">
+        <div class="mobile-search-panel">
+          <div class="mobile-search-header">
+            <p class="mobile-search-title">搜索文章</p>
+            <button
+              class="mobile-search-close"
+              type="button"
+              aria-label="关闭搜索"
+              @click="mobileSearchOpen = false"
+            >
+              ×
+            </button>
+          </div>
+          <GlobalSearchBox />
+        </div>
+      </div>
+    </transition>
   </el-header>
 </template>
 
 <script>
 import { ElHeader, ElIcon } from "element-plus";
-import { Moon, Sunny } from "@element-plus/icons-vue";
+import { Moon, Search, Sunny } from "@element-plus/icons-vue";
+import { ref, watch } from "vue";
+import { useRoute } from "vue-router";
 import logoSrc from "../../assets/logo.png";
 import GlobalSearchBox from "./GlobalSearchBox.vue";
 
@@ -33,6 +65,7 @@ export default {
     ElHeader,
     ElIcon,
     Moon,
+    Search,
     Sunny,
     GlobalSearchBox,
   },
@@ -48,8 +81,19 @@ export default {
   },
   emits: ["toggle-theme"],
   setup() {
+    const route = useRoute();
+    const mobileSearchOpen = ref(false);
+
+    watch(
+      () => route.fullPath,
+      () => {
+        mobileSearchOpen.value = false;
+      }
+    );
+
     return {
       logoSrc,
+      mobileSearchOpen,
     };
   },
 };
@@ -65,7 +109,13 @@ export default {
   min-height: var(--header-h);
 }
 
+.search-toggle {
+  display: none;
+}
+
 .blog-brand {
+  display: inline-flex;
+  align-items: center;
   min-width: 0;
   position: relative;
   z-index: 2;
@@ -91,23 +141,127 @@ export default {
 
 @media (max-width: 768px) {
   .header-content {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    grid-template-areas: "search brand theme";
     gap: 10px;
+    align-items: center;
+    min-height: 44px;
+  }
+
+  .search-toggle,
+  .theme-toggle {
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-inverse);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .search-toggle {
+    grid-area: search;
+  }
+
+  .blog-brand {
+    grid-area: brand;
+    justify-self: center;
+    align-self: center;
   }
 
   .header-search {
-    position: static;
-    transform: none;
-    width: 100%;
-    order: 3;
-    margin-top: 8px;
-  }
-
-  .blog-title {
     display: none;
   }
 
-  .header-content {
-    flex-wrap: wrap;
+  .theme-toggle {
+    grid-area: theme;
+    justify-self: end;
+  }
+
+  .blog-title {
+    display: inline;
+    font-size: 1.05rem;
+    white-space: nowrap;
+  }
+
+  .mobile-search-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    background: rgba(12, 18, 26, 0.52);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: calc(var(--header-h) + 12px) 12px 12px;
+    box-sizing: border-box;
+  }
+
+  .mobile-search-panel {
+    width: min(100%, 540px);
+    border-radius: 20px;
+    background: var(--brand);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 20px 60px rgba(8, 12, 18, 0.28);
+    padding: 14px;
+  }
+
+  .mobile-search-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .mobile-search-title {
+    margin: 0;
+    color: var(--text-inverse);
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
+
+  .mobile-search-close {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-inverse);
+    font-size: 24px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .mobile-search-panel :deep(.global-search) {
+    width: 100%;
+  }
+
+  .mobile-search-panel :deep(.global-search-input) {
+    border-color: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .mobile-search-panel :deep(.search-preview-panel) {
+    position: static;
+    margin-top: 10px;
+  }
+
+  .mobile-search-fade-enter-active,
+  .mobile-search-fade-leave-active {
+    transition: opacity 0.18s ease;
+  }
+
+  .mobile-search-fade-enter-from,
+  .mobile-search-fade-leave-to {
+    opacity: 0;
   }
 }
 </style>

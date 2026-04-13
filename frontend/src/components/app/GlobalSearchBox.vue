@@ -41,6 +41,7 @@ export default {
     const inputRef = ref(null);
     const activeIndex = ref(-1);
     const blurTimer = ref(null);
+    const debounceTimer = ref(null);
     const { searchStore, loadPreview, closePreview } = useSearchPreview();
     const query = ref((route.query.q || "").toString());
 
@@ -51,6 +52,10 @@ export default {
     });
 
     const syncFromRoute = () => {
+      if (debounceTimer.value) {
+        window.clearTimeout(debounceTimer.value);
+        debounceTimer.value = null;
+      }
       query.value = (route.query.q || "").toString();
     };
 
@@ -77,7 +82,13 @@ export default {
 
     const handleInput = () => {
       activeIndex.value = -1;
-      loadPreview(query.value);
+      if (debounceTimer.value) {
+        window.clearTimeout(debounceTimer.value);
+        debounceTimer.value = null;
+      }
+      debounceTimer.value = window.setTimeout(() => {
+        loadPreview(query.value);
+      }, 220);
     };
 
     const handleFocusIn = () => {
@@ -86,11 +97,19 @@ export default {
         blurTimer.value = null;
       }
       if (query.value.trim()) {
+        if (debounceTimer.value) {
+          window.clearTimeout(debounceTimer.value);
+          debounceTimer.value = null;
+        }
         loadPreview(query.value);
       }
     };
 
     const handleFocusOut = () => {
+      if (debounceTimer.value) {
+        window.clearTimeout(debounceTimer.value);
+        debounceTimer.value = null;
+      }
       blurTimer.value = window.setTimeout(() => {
         closePreview();
       }, 120);
@@ -110,6 +129,10 @@ export default {
       }
       if (event.key === "Enter") {
         event.preventDefault();
+        if (debounceTimer.value) {
+          window.clearTimeout(debounceTimer.value);
+          debounceTimer.value = null;
+        }
         if (activeIndex.value >= 0 && items[activeIndex.value]) {
           selectItem(items[activeIndex.value]);
           return;

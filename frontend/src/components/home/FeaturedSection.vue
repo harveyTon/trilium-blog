@@ -5,22 +5,57 @@
       <h2 class="featured-heading">精选文章</h2>
     </div>
 
-    <div v-if="isScrollable" class="featured-window">
-      <div class="featured-track" :style="trackStyle">
-        <div v-for="(item, index) in scrollingItems" :key="`${item.noteId}-${index}`" class="featured-item-shell">
-          <FeaturedCard :post="item" />
+    <div class="featured-carousel">
+      <button
+        v-if="showControls"
+        class="featured-nav featured-nav--prev"
+        type="button"
+        aria-label="查看上一组精选文章"
+        @click="goPrev"
+      >
+        ‹
+      </button>
+
+      <div
+        class="featured-viewport"
+        @touchstart.passive="handleTouchStart"
+        @touchend.passive="handleTouchEnd"
+      >
+        <div class="featured-track" :style="trackStyle">
+          <div
+            v-for="item in items"
+            :key="item.noteId"
+            class="featured-item-shell"
+            :style="itemStyle"
+          >
+            <FeaturedCard :post="item" />
+          </div>
         </div>
       </div>
+
+      <button
+        v-if="showControls"
+        class="featured-nav featured-nav--next"
+        type="button"
+        aria-label="查看下一组精选文章"
+        @click="goNext"
+      >
+        ›
+      </button>
     </div>
 
-    <div v-else class="featured-grid">
-      <FeaturedCard v-for="item in items" :key="item.noteId" :post="item" />
+    <div v-if="showControls" class="featured-dots" aria-hidden="true">
+      <span
+        v-for="page in totalPages"
+        :key="page"
+        :class="['featured-dot', { 'is-active': page - 1 === currentPage }]"
+      ></span>
     </div>
   </section>
 </template>
 
 <script>
-import { computed } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import FeaturedCard from "./FeaturedCard.vue";
 
 export default {
@@ -35,17 +70,75 @@ export default {
     },
   },
   setup(props) {
-    const isScrollable = computed(() => props.items.length > 3);
-    const scrollingItems = computed(() => (isScrollable.value ? [...props.items, ...props.items] : props.items));
+    const visibleCount = ref(3);
+    const currentPage = ref(0);
+    const touchStartX = ref(0);
+
+    const syncVisibleCount = () => {
+      visibleCount.value = window.innerWidth <= 768 ? 1 : 3;
+    };
+
+    const totalPages = computed(() => Math.max(1, props.items.length - visibleCount.value + 1));
+    const showControls = computed(() => props.items.length > visibleCount.value);
+    const maxPage = computed(() => Math.max(0, totalPages.value - 1));
     const trackStyle = computed(() => ({
-      "--featured-count": String(props.items.length),
-      "--featured-duration": `${Math.max(props.items.length * 8, 28)}s`,
+      transform: `translateX(calc(-1 * ${currentPage.value} * (100% + var(--featured-gap)) / ${visibleCount.value}))`,
+    }));
+    const itemStyle = computed(() => ({
+      flex: `0 0 calc((100% - var(--featured-gap) * ${visibleCount.value - 1}) / ${visibleCount.value})`,
+      maxWidth: `calc((100% - var(--featured-gap) * ${visibleCount.value - 1}) / ${visibleCount.value})`,
     }));
 
+    const clampCurrentPage = () => {
+      currentPage.value = Math.min(currentPage.value, maxPage.value);
+    };
+
+    const goPrev = () => {
+      currentPage.value = currentPage.value <= 0 ? maxPage.value : currentPage.value - 1;
+    };
+
+    const goNext = () => {
+      currentPage.value = currentPage.value >= maxPage.value ? 0 : currentPage.value + 1;
+    };
+
+    const handleTouchStart = (event) => {
+      touchStartX.value = event.changedTouches[0]?.clientX || 0;
+    };
+
+    const handleTouchEnd = (event) => {
+      const touchEndX = event.changedTouches[0]?.clientX || 0;
+      const deltaX = touchEndX - touchStartX.value;
+      if (Math.abs(deltaX) < 32 || !showControls.value) {
+        return;
+      }
+      if (deltaX > 0) {
+        goPrev();
+      } else {
+        goNext();
+      }
+    };
+
+    watch([() => props.items.length, visibleCount], clampCurrentPage, { immediate: true });
+
+    onMounted(() => {
+      syncVisibleCount();
+      window.addEventListener("resize", syncVisibleCount);
+    });
+
+    onUnmounted(() => {
+      window.removeEventListener("resize", syncVisibleCount);
+    });
+
     return {
-      isScrollable,
-      scrollingItems,
+      currentPage,
+      totalPages,
+      showControls,
       trackStyle,
+      itemStyle,
+      goPrev,
+      goNext,
+      handleTouchStart,
+      handleTouchEnd,
     };
   },
 };
@@ -79,42 +172,25 @@ export default {
   font-size: 28px;
 }
 
-.featured-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 16px;
-}
-
-.featured-window {
+.featured-carousel {
   --featured-gap: 16px;
-  --featured-card-width: minmax(280px, 1fr);
   position: relative;
-  overflow: hidden;
-  padding-bottom: 4px;
-  mask-image: linear-gradient(to right, transparent 0, black 5%, black 95%, transparent 100%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
-.featured-window::after {
-  content: "";
-  display: block;
-  clear: both;
-}
-
-.featured-window {
+.featured-viewport {
   overflow: hidden;
+  flex: 1;
+  min-width: 0;
 }
 
 .featured-track {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(280px, 1fr);
+  display: flex;
   gap: var(--featured-gap);
-  animation: featured-marquee var(--featured-duration) linear infinite;
+  transition: transform 0.42s ease;
   will-change: transform;
-}
-
-.featured-window:hover .featured-track {
-  animation-play-state: paused;
 }
 
 .featured-item-shell {
@@ -130,31 +206,63 @@ export default {
   box-sizing: border-box;
 }
 
-@keyframes featured-marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(calc(-1 * (280px + var(--featured-gap)) * var(--featured-count)));
-  }
+.featured-nav {
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 90%, white 10%);
+  color: var(--text);
+  font-size: 28px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+.featured-nav:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.featured-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.featured-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.featured-dot.is-active {
+  background: var(--accent);
+  transform: scale(1.25);
 }
 
 @media (max-width: 768px) {
-  .featured-window {
+  .featured-carousel {
     --featured-gap: 12px;
+    gap: 10px;
   }
 
-  .featured-track {
-    grid-auto-columns: minmax(240px, 82vw);
+  .featured-nav {
+    width: 36px;
+    height: 36px;
+    font-size: 24px;
   }
 
-  @keyframes featured-marquee {
-    from {
-      transform: translateX(0);
-    }
-    to {
-      transform: translateX(calc(-1 * (240px + var(--featured-gap)) * var(--featured-count)));
-    }
+  .featured-heading {
+    font-size: 24px;
   }
 }
 </style>
