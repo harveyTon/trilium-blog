@@ -403,13 +403,15 @@ func cleanInvisibleChars(s string) string {
 	return result.String()
 }
 
+var (
+	repeatedPunctRe = regexp.MustCompile(`([\.\,\;\:\!\?\。、，、；：！？…—–])\1+`)
+	runPunctSpaceRe = regexp.MustCompile(`[\.\,\;\:\!\?\。、，、；：！？…—–\s]{3,}`)
+)
+
 // cleanRepeatedPunctuation replaces runs of the same punctuation with a single instance
 func cleanRepeatedPunctuation(s string) string {
-	re := regexp.MustCompile(`([\.\,\;\:\!\?\。、，、；：！？…—–])\1+`)
-	s = re.ReplaceAllString(s, "$1")
-	// Collapse runs of different punctuation
-	re2 := regexp.MustCompile(`[\.\,\;\:\!\?\。、，、；：！？…—–\s]{3,}`)
-	s = re2.ReplaceAllString(s, " ")
+	s = repeatedPunctRe.ReplaceAllString(s, "$1")
+	s = runPunctSpaceRe.ReplaceAllString(s, " ")
 	return s
 }
 
