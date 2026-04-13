@@ -5,6 +5,11 @@ import NotFound from "../views/NotFound.vue";
 const routes = [
   { path: "/", name: "HomePage", component: HomePage },
   {
+    path: "/search",
+    name: "Search",
+    component: () => import("../views/Search.vue"),
+  },
+  {
     path: "/post/:noteId",
     name: "Article",
     component: () => import("../views/Article.vue"),

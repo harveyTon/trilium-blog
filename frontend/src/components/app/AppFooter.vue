@@ -1,0 +1,40 @@
+<template>
+  <el-footer class="app-footer">
+    <div class="footer-content">
+      <div class="footer-text">
+        <p>
+          © {{ new Date().getFullYear() }} {{ site.name }}.
+          保留所有权利。
+        </p>
+        <p>
+          由
+          <a href="https://github.com/harveyTon/trilium-blog" target="_blank"
+            >Trilium Blog</a
+          >
+          &
+          <a href="https://github.com/TriliumNext/Trilium" target="_blank"
+            >Trilium</a
+          >
+          强力驱动
+        </p>
+      </div>
+    </div>
+  </el-footer>
+</template>
+
+<script>
+import { ElFooter } from "element-plus";
+
+export default {
+  name: "AppFooter",
+  components: {
+    ElFooter,
+  },
+  props: {
+    site: {
+      type: Object,
+      required: true,
+    },
+  },
+};
+</script>

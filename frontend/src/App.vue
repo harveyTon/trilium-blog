@@ -1,22 +1,6 @@
 <template>
   <el-container class="app-container">
-    <el-header class="app-header">
-      <div class="header-content">
-        <router-link to="/" class="blog-brand">
-          <img src="./assets/logo.png" :alt="site.name + ' - 返回首页'" class="blog-logo" />
-          <span class="blog-title">{{ site.name }}</span>
-        </router-link>
-        <button
-          class="theme-toggle"
-          :aria-label="isDark ? '切换到亮色模式' : '切换到暗色模式'"
-          @click="toggleDark()"
-        >
-          <el-icon>
-            <component :is="isDark ? 'Sunny' : 'Moon'" />
-          </el-icon>
-        </button>
-      </div>
-    </el-header>
+    <AppHeader :is-dark="isDark" :site="site" @toggle-theme="toggleDark()" />
     <el-main class="app-main">
       <div class="main-content">
         <router-view v-slot="{ Component }">
@@ -26,43 +10,24 @@
         </router-view>
       </div>
     </el-main>
-    <el-footer class="app-footer">
-      <div class="footer-content">
-        <div class="footer-text">
-          <p>
-            © {{ new Date().getFullYear() }} {{ site.name }}.
-            保留所有权利。
-          </p>
-          <p>
-            由
-            <a href="https://github.com/harveyTon/trilium-blog" target="_blank"
-              >Trilium Blog</a
-            >
-            &
-              <a href="https://github.com/TriliumNext/Trilium" target="_blank"
-              >Trilium</a
-            >
-            强力驱动
-          </p>
-        </div>
-      </div>
-    </el-footer>
+    <AppFooter :site="site" />
     <el-backtop></el-backtop>
   </el-container>
 </template>
 
 <script>
-import { Moon, Sunny } from "@element-plus/icons-vue";
 import { useDark, useToggle } from "@vueuse/core";
 import { onMounted, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { useSiteStore } from "./store";
+import AppFooter from "./components/app/AppFooter.vue";
+import AppHeader from "./components/app/AppHeader.vue";
 
 export default {
   name: "App",
   components: {
-    Moon,
-    Sunny,
+    AppHeader,
+    AppFooter,
   },
   setup() {
     const siteStore = useSiteStore();
@@ -95,8 +60,6 @@ export default {
       site,
       isDark,
       toggleDark,
-      Moon,
-      Sunny,
     };
   },
 };
