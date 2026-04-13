@@ -169,14 +169,6 @@ export default {
         parent.dataset.fancybox = "gallery";
       });
       Fancybox.bind("[data-fancybox]", {});
-
-      document.querySelectorAll(".article-content table").forEach((table) => {
-        if (table.parentElement.classList.contains("table-scroll-wrapper")) return;
-        const wrapper = document.createElement("div");
-        wrapper.className = "table-scroll-wrapper";
-        table.parentNode.insertBefore(wrapper, table);
-        wrapper.appendChild(table);
-      });
     };
 
     const destroyComments = () => {
@@ -322,6 +314,7 @@ export default {
   justify-content: center;
   align-items: flex-start;
   gap: 32px;
+  overflow-x: clip;
 }
 
 .article-shell:not(.has-toc) {
@@ -441,6 +434,7 @@ export default {
   font-size: 17px;
   line-height: 1.85;
   word-break: break-word;
+  overflow-x: clip;
 }
 
 .article-content > * + * {
@@ -514,20 +508,25 @@ export default {
   margin-bottom: 0;
 }
 
-/* ── Table ── */
+.article-content figure,
 .table-scroll-wrapper {
   width: 100%;
+  max-width: 100%;
+  margin: 24px 0 32px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
 
+/* ── Table ── */
+
 .article-content table {
-  width: 100%;
-  min-width: 600px;
+  width: max-content;
+  min-width: 100%;
   border-collapse: collapse;
-  margin: 24px 0 32px;
+  margin: 0;
   font-size: 15px;
   line-height: 1.6;
+  table-layout: auto;
 }
 
 .article-content th,
@@ -631,7 +630,8 @@ html.dark .article-content :not(pre) > code {
 
   .article-main {
     max-width: 100%;
-    flex: none;
+    min-width: 0;
+    overflow-x: clip;
   }
 }
 
@@ -647,6 +647,23 @@ html.dark .article-content :not(pre) > code {
 
   .article-content h3 {
     font-size: 18px;
+  }
+
+  .article-content figure,
+  .table-scroll-wrapper {
+    margin-inline: -4px;
+    padding-inline: 4px;
+  }
+
+  .article-content table {
+    min-width: 560px;
+    font-size: 14px;
+  }
+
+  .article-content th,
+  .article-content td {
+    min-width: 110px;
+    padding: 10px 12px;
   }
 }
 
