@@ -217,6 +217,35 @@ func (s *Service) SearchPosts(query string, preview bool, limit int) (*SearchRes
 	}, nil
 }
 
+func (s *Service) ListFeaturedPosts() ([]Post, error) {
+	notes, err := s.etapiClient.GetNotes("#blogtop=true")
+	if err != nil {
+		return nil, err
+	}
+
+	posts := make([]Post, 0, len(notes))
+	for _, note := range notes {
+		if note.Type != "text" || !hasFeaturedLabel(note.Attributes) {
+			continue
+		}
+
+		post := Post{
+			NoteID:       note.NoteID,
+			Title:        note.Title,
+			DateModified: note.DateModified,
+		}
+
+		content, err := s.etapiClient.GetNoteContent(note.NoteID)
+		if err == nil {
+			post.Summary = s.extractSummary(s.sanitizeContent(content))
+		}
+
+		posts = append(posts, post)
+	}
+
+	return posts, nil
+}
+
 func (s *Service) GenerateSitemap() (string, error) {
 	notes, err := s.etapiClient.GetNotes("#blog=true")
 	if err != nil {
@@ -295,8 +324,25 @@ func (e *BlogError) Error() string {
 }
 
 func hasBlogLabel(attrs []etapi.Attribute) bool {
+	return hasTrueLabel(attrs, "blog")
+}
+
+func hasFeaturedLabel(attrs []etapi.Attribute) bool {
+	return hasTrueLabel(attrs, "blogtop")
+}
+
+func hasTrueLabel(attrs []etapi.Attribute, name string) bool {
 	for _, a := range attrs {
-		if a.Type == "label" && a.Name == "blog" && a.Value == "true" {
+		if a.Type == "label" && a.Name == name && a.Value == "true" {
+			return true
+		}
+	}
+	return false
+}
+
+func hasTrueLabelFromAttributes(attrs []attribute, name string) bool {
+	for _, a := range attrs {
+		if a.Type == "label" && a.Name == name && a.Value == "true" {
 			return true
 		}
 	}

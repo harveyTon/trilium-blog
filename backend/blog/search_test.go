@@ -35,3 +35,12 @@ func TestExtractSnippet(t *testing.T) {
 		t.Fatalf("expected shortened snippet around query")
 	}
 }
+
+func TestHasFeaturedLabel(t *testing.T) {
+	attrs := []attribute{
+		{Type: "label", Name: "blogtop", Value: "true"},
+	}
+	if !hasTrueLabelFromAttributes(attrs, "blogtop") {
+		t.Fatalf("expected featured label to be detected")
+	}
+}

@@ -77,12 +77,11 @@ type attribute struct {
 }
 
 func (n *etapiNote) hasBlogLabel() bool {
-	for _, a := range n.Attributes {
-		if a.Type == "label" && a.Name == "blog" && a.Value == "true" {
-			return true
-		}
-	}
-	return false
+	return hasTrueLabelFromAttributes(n.Attributes, "blog")
+}
+
+func (n *etapiNote) hasFeaturedLabel() bool {
+	return hasTrueLabelFromAttributes(n.Attributes, "blogtop")
 }
 
 func (n *etapiNote) getPageURL() string {

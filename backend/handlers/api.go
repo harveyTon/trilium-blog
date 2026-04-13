@@ -60,6 +60,16 @@ func (h *APIHandler) SearchPosts(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+func (h *APIHandler) ListFeaturedPosts(c *gin.Context) {
+	posts, err := h.service.ListFeaturedPosts()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch featured posts"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"items": posts})
+}
+
 func (h *APIHandler) GetPost(c *gin.Context) {
 	noteId := c.Param("noteId")
 
