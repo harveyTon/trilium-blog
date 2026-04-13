@@ -1,5 +1,6 @@
 <template>
   <div class="article">
+    <ReadingProgressBar :progress="readingProgress" />
     <el-skeleton :loading="loading" animated>
       <template #template>
         <el-skeleton-item
@@ -22,7 +23,9 @@
           <ArticleTOC
             :items="post.toc"
             :active-heading="activeHeading"
+            :collapsed="tocCollapsed"
             @scroll-to-heading="scrollToHeading"
+            @toggle-collapse="tocCollapsed = !tocCollapsed"
           />
 
           <main class="article-main">
@@ -67,11 +70,13 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { fetchPost } from "../api/blog";
 import { normalizeSummaryPayload } from "../api/summary";
+import ReadingProgressBar from "../components/app/ReadingProgressBar.vue";
 import ArticleContent from "../components/article/ArticleContent.vue";
 import ArticleHeader from "../components/article/ArticleHeader.vue";
 import ArticleSummaryBlock from "../components/article/ArticleSummaryBlock.vue";
 import ArticleTOC from "../components/article/ArticleTOC.vue";
 import SourceLinkBlock from "../components/article/SourceLinkBlock.vue";
+import { useReadingProgress } from "../composables/useReadingProgress";
 import { useSiteStore } from "../store";
 
 export default {
@@ -82,6 +87,7 @@ export default {
     ArticleHeader,
     ArticleSummaryBlock,
     ArticleTOC,
+    ReadingProgressBar,
     SourceLinkBlock,
   },
   setup() {
@@ -94,6 +100,8 @@ export default {
     const activeHeading = ref("");
     const artalkContainer = ref(null);
     const summaryState = computed(() => normalizeSummaryPayload(post.value));
+    const tocCollapsed = ref(false);
+    const { progress: readingProgress, updateReadingProgress } = useReadingProgress();
     let artalkInstance = null;
     let darkModeObserver = null;
     let headingObserver = null;
@@ -207,6 +215,7 @@ export default {
       setupGallery();
       initComments();
       setupHeadingObserver();
+      updateReadingProgress();
     };
 
     const syncTitle = () => {
@@ -231,6 +240,7 @@ export default {
         headingObserver = null;
       }
       activeHeading.value = "";
+      tocCollapsed.value = window.innerWidth <= 1024;
       try {
         post.value = await fetchPost(route.params.noteId);
         await enhanceContent();
@@ -281,6 +291,8 @@ export default {
       loading,
       loadError,
       activeHeading,
+      tocCollapsed,
+      readingProgress,
       artalkContainer,
       formatDate,
       loadPost,
