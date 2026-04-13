@@ -11,26 +11,48 @@
 
     <div class="search-state">
       <el-empty
-        v-if="!query"
+        v-if="!hasQuery"
         description="输入关键词后，可在这里查看完整搜索结果"
       />
-      <el-skeleton v-else :rows="6" animated />
+      <template v-else>
+        <el-alert v-if="error" :title="error" type="error" show-icon :closable="false" />
+        <div v-else-if="loading" class="search-loading">
+          <el-skeleton :rows="6" animated />
+        </div>
+        <div v-else class="search-result-shell">
+          <p class="search-count">共找到 {{ total }} 条结果</p>
+          <el-empty v-if="!items.length" description="没有找到相关内容" />
+          <ul v-else class="search-result-list">
+            <li v-for="item in items" :key="item.noteId" class="search-result-item">
+              <router-link :to="{ name: 'Article', params: { noteId: item.noteId } }">
+                {{ item.title }}
+              </router-link>
+            </li>
+          </ul>
+        </div>
+      </template>
     </div>
   </section>
 </template>
 
 <script>
-import { computed } from "vue";
-import { useRoute } from "vue-router";
+import { ElAlert } from "element-plus";
+import { useSearch } from "../composables/useSearch";
 
 export default {
   name: "SearchPage",
+  components: {
+    ElAlert,
+  },
   setup() {
-    const route = useRoute();
-    const query = computed(() => (route.query.q || "").toString().trim());
-
+    const { query, hasQuery, loading, error, items, total } = useSearch();
     return {
       query,
+      hasQuery,
+      loading,
+      error,
+      items,
+      total,
     };
   },
 };
@@ -70,5 +92,38 @@ export default {
 
 .search-state {
   min-height: 240px;
+}
+
+.search-loading {
+  padding-top: 8px;
+}
+
+.search-result-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.search-count {
+  margin: 0;
+  color: var(--text-soft);
+}
+
+.search-result-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.search-result-item a {
+  color: var(--link);
+  text-decoration: none;
+}
+
+.search-result-item a:hover {
+  text-decoration: underline;
 }
 </style>
