@@ -66,6 +66,7 @@ export default {
   gap: 28px;
   padding: 18px 0 22px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  transition: transform 0.18s ease, border-color 0.18s ease;
 }
 
 .post-date {
@@ -103,8 +104,8 @@ export default {
 
 .post-title {
   margin: 0;
-  font-size: 20px;
-  line-height: 1.4;
+  font-size: 22px;
+  line-height: 1.32;
   font-weight: 700;
 }
 
@@ -113,32 +114,40 @@ export default {
   text-decoration: none;
   position: relative;
   display: inline-block;
+  transition: color 0.18s ease;
 }
 
 .post-title a::after {
   content: "";
   display: block;
-  width: 120px;
-  height: 1px;
-  margin-top: 14px;
-  background: linear-gradient(
-    to right,
-    var(--border) 0%,
-    var(--border) 35%,
-    var(--border) 65%,
-    transparent 100%
-  );
-  transition: background 0.2s ease;
+  width: 0;
+  max-width: 100%;
+  height: 2px;
+  margin-top: 12px;
+  background: color-mix(in srgb, var(--accent) 88%, transparent);
+  transition: width 0.18s ease, background 0.18s ease;
+}
+
+.post-item:hover {
+  border-color: color-mix(in srgb, var(--border) 72%, var(--accent) 28%);
+}
+
+.post-item:hover .post-title a,
+.post-title a:hover {
+  color: var(--link-hover);
 }
 
 .post-item:hover .post-title a::after {
-  background: linear-gradient(
-    to right,
-    var(--accent) 0%,
-    var(--accent) 35%,
-    var(--accent) 65%,
-    transparent 100%
-  );
+  width: min(180px, 100%);
+}
+
+.post-title a:focus-visible {
+  outline: none;
+  color: var(--link-hover);
+}
+
+.post-title a:focus-visible::after {
+  width: min(180px, 100%);
 }
 
 .post-meta {
@@ -169,13 +178,17 @@ html.dark .post-date {
   }
 
   .post-title {
-    font-size: 18px;
+    font-size: 20px;
     line-height: 1.45;
   }
 
   .post-title a::after {
-    width: 96px;
     margin-top: 12px;
+  }
+
+  .post-item:hover .post-title a::after,
+  .post-title a:focus-visible::after {
+    width: min(132px, 100%);
   }
 
   .post-meta {

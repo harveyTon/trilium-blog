@@ -186,13 +186,33 @@ export default {
   --featured-gap: 16px;
   position: relative;
   width: 100%;
-  padding: 2px 0 4px;
+}
+
+.featured-carousel::after {
+  content: "";
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: -2px;
+  height: 30px;
+  border-radius: 0 0 24px 24px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--bg) 0%, transparent) 0%,
+    color-mix(in srgb, var(--bg) 92%, var(--surface) 8%) 100%
+  );
+  pointer-events: none;
+  z-index: 0;
 }
 
 .featured-viewport {
+  padding: 6px 0 8px;
+  margin: -6px 0 -8px;
   overflow: hidden;
   min-width: 0;
   width: 100%;
+  position: relative;
+  z-index: 1;
 }
 
 .featured-track {
@@ -266,6 +286,10 @@ export default {
   display: flex;
   justify-content: center;
   gap: 8px;
+  margin-top: 4px;
+  padding: 2px 0 0;
+  position: relative;
+  z-index: 1;
 }
 
 .featured-dot {
@@ -288,7 +312,18 @@ export default {
 @media (max-width: 768px) {
   .featured-carousel {
     --featured-gap: 12px;
-    padding-bottom: 2px;
+  }
+
+  .featured-carousel::after {
+    left: 10px;
+    right: 10px;
+    height: 22px;
+    border-radius: 0 0 20px 20px;
+  }
+
+  .featured-viewport {
+    padding: 6px 0 6px;
+    margin: -6px 0 -6px;
   }
 
   .featured-nav {

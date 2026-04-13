@@ -69,15 +69,15 @@ export default {
     linear-gradient(180deg, color-mix(in srgb, var(--surface) 98%, white 2%), color-mix(in srgb, var(--surface) 94%, var(--bg) 6%));
   border-radius: 20px;
   height: 100%;
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
+  box-shadow: 0 8px 20px rgba(20, 30, 40, 0.06);
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  cursor: pointer;
 }
 
 .featured-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: color-mix(in srgb, var(--border-soft) 65%, var(--accent) 35%);
+  box-shadow: 0 18px 34px rgba(20, 30, 40, 0.12);
+  border-color: color-mix(in srgb, var(--border-soft) 58%, var(--accent) 42%);
 }
 
 .featured-link {
@@ -87,6 +87,9 @@ export default {
   box-sizing: border-box;
   text-decoration: none;
   min-height: 312px;
+  cursor: pointer;
+  border-radius: inherit;
+  overflow: hidden;
 }
 
 .featured-link:focus-visible {
@@ -96,6 +99,11 @@ export default {
 .featured-link:focus-visible .featured-copy {
   border-color: color-mix(in srgb, var(--accent) 42%, var(--border-soft) 58%);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.featured-card:hover .featured-title,
+.featured-link:hover .featured-title {
+  color: var(--link-hover);
 }
 
 .featured-copy {
