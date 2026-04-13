@@ -39,8 +39,8 @@
               >Trilium Blog</a
             >
             &
-            <a href="https://github.com/TriliumNext/Trilium" target="_blank"
-              >TriliumNext Notes</a
+              <a href="https://github.com/TriliumNext/Trilium" target="_blank"
+              >Trilium</a
             >
             强力驱动
           </p>
