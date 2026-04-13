@@ -107,45 +107,66 @@ export default {
 @import "element-plus/theme-chalk/dark/css-vars.css";
 
 :root {
-  --bg-page: #f5f7fa;
-  --bg-surface: #ffffff;
-  --bg-header-footer: #2c3e50;
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --surface-muted: #f7f8fa;
+  --border: #d9dee5;
+  --border-soft: #e7ebf0;
 
-  --text-primary: #2c3e50;
-  --text-secondary: #636363;
-  --text-muted: #6b6b6b;
+  --text: #243447;
+  --text-soft: #5c6b7a;
+  --text-faint: #8a96a3;
   --text-inverse: #ffffff;
 
-  --accent: #409eff;
-  --accent-hover: #66b1ff;
+  --brand: #2d4359;
+  --brand-strong: #223447;
+  --accent: #f08c2e;
 
-  --border-color: rgba(0, 0, 0, 0.12);
+  --link: #2f6db3;
+  --link-hover: #1f5a9b;
+
+  --shadow-sm: 0 2px 8px rgba(20, 30, 40, 0.04);
+  --shadow-md: 0 8px 24px rgba(20, 30, 40, 0.08);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  --content-w: 760px;
+  --list-w: 860px;
+  --header-h: 64px;
 
   --font-family: "LXGW WenKai", "Helvetica Neue", Helvetica, "PingFang SC",
     "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+  --mono: "SFMono-Regular", "JetBrains Mono", "Cascadia Code", ui-monospace,
+    monospace;
 }
 
 html.dark {
-  --bg-page: #1a1a1a;
-  --bg-surface: #1f1f1f;
-  --bg-header-footer: #333333;
+  --bg: #141a22;
+  --surface: #1b222d;
+  --surface-muted: #1f2836;
+  --border: #2e3a4a;
+  --border-soft: #253040;
 
-  --text-primary: #f5f5f5;
-  --text-secondary: #bdbdbd;
-  --text-muted: #a0a0a0;
+  --text: #dce4ed;
+  --text-soft: #94a3b4;
+  --text-faint: #5f7082;
+  --text-inverse: #141a22;
 
-  --border-color: rgba(255, 255, 255, 0.12);
+  --brand: #3d5570;
+  --brand-strong: #4d6a85;
+  --accent: #e89430;
 
-  --accent: #d0d0d0;
-  --accent-hover: #bdbdbd;
-  --text-on-accent: #1a1a1a;
+  --link: #6aadec;
+  --link-hover: #8dc4f5;
 }
 
 body {
   margin: 0;
   padding: 0;
-  background-color: var(--bg-page);
-  color: var(--text-primary);
+  background-color: var(--bg);
+  color: var(--text);
 }
 
 :focus-visible {
@@ -167,7 +188,7 @@ body {
 
 .app-header,
 .app-footer {
-  background-color: var(--bg-header-footer);
+  background-color: var(--brand);
   color: var(--text-inverse);
   padding: 20px 0;
 }
@@ -176,9 +197,10 @@ body {
   position: fixed;
   width: 100%;
   z-index: 1000;
-  height: 60px;
+  height: var(--header-h);
   display: flex;
   align-items: center;
+  box-shadow: var(--shadow-sm);
 }
 
 .header-content {
@@ -210,8 +232,9 @@ body {
 
 .app-main {
   flex: 1;
-  padding-top: 80px;
+  padding-top: calc(var(--header-h) + 16px);
   padding-bottom: 40px;
+  overflow: visible;
 }
 
 .main-content {
@@ -246,7 +269,7 @@ body {
 }
 
 .el-backtop {
-  background-color: var(--accent);
+  background-color: var(--brand);
   color: var(--text-inverse);
   border-radius: 50%;
   display: flex;
@@ -256,7 +279,7 @@ body {
 }
 
 .el-backtop:hover {
-  background-color: var(--accent-hover);
+  background-color: var(--brand-strong);
 }
 
 @media (max-width: 768px) {
@@ -268,7 +291,7 @@ body {
 
   .app-main {
     padding: 0;
-    padding-top: 60px;
+    padding-top: calc(var(--header-h) + 8px);
     padding-bottom: 20px;
   }
 
@@ -296,14 +319,14 @@ body {
 }
 
 html.dark .el-backtop {
-  background-color: var(--accent);
-  color: var(--text-on-accent);
+  background-color: var(--brand);
+  color: var(--text-inverse);
 }
 
 html.dark .el-backtop:hover {
-  background-color: var(--accent-hover);
-  color: var(--text-on-accent);
+  background-color: var(--brand-strong);
 }
+
 .theme-toggle {
   display: inline-flex;
   align-items: center;
@@ -316,8 +339,8 @@ html.dark .el-backtop:hover {
   cursor: pointer;
   color: var(--text-inverse);
   font-size: 24px;
-  transition: color 0.3s ease;
-  border-radius: 8px;
+  transition: color 0.2s ease;
+  border-radius: var(--radius-sm);
 }
 
 .theme-toggle:hover {
