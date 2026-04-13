@@ -417,11 +417,14 @@ export default {
   border-top: 1px solid var(--border-soft);
   color: var(--text-faint);
   font-size: 14px;
+  max-width: 100%;
 }
 
 .article-source a {
   color: var(--link);
   text-decoration: none;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .article-source a:hover {
@@ -496,16 +499,21 @@ export default {
 }
 
 .article-content blockquote {
-  margin: 1.5em 0;
-  padding: 12px 20px;
-  border-left: 3px solid var(--accent);
-  background: var(--surface-muted);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  margin: 1.6em 0;
+  padding: 12px 16px;
+  border-left: none;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 6px;
   color: var(--text-soft);
 }
 
-.article-content blockquote p:last-child {
-  margin-bottom: 0;
+.article-content blockquote p {
+  margin: 0;
+  line-height: 1.7;
+}
+
+html.dark .article-content blockquote {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .article-content figure,
