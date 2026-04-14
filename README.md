@@ -157,7 +157,11 @@ AI_SUMMARY_MODE=code
 ## 代码块与高亮
 
 - 后端会在处理文章 HTML 时抽取代码块元数据。
-- 代码语言识别优先基于 Trilium 返回的 class 名，再使用 [Chroma](https://github.com/alecthomas/chroma) 做归一化与兜底识别。
+- 代码语言识别按以下优先级进行：
+  1. Trilium 返回的 MIME class 名（内置 120+ MIME type 映射表）
+  2. [Chroma](https://github.com/alecthomas/chroma) 词法分析
+  3. [enry](https://github.com/go-enry/go-enry) 统计分类器
+  4. 兜底为 `plaintext`
 - 前端使用 [Shiki](https://github.com/shikijs/shiki) 进行代码高亮渲染。
 - 支持代码语言标签、复制按钮、行号与亮暗主题切换。
 
@@ -172,7 +176,7 @@ AI_SUMMARY_MODE=code
 
 ## 技术栈
 
-**后端：** Go 1.25 / Gin / goquery / bluemonday / Redis / SQLite / Chroma
+**后端：** Go 1.25 / Gin / goquery / bluemonday / Redis / SQLite / Chroma / enry
 
 **前端：** Vue 3 / Vite / Element Plus / Pinia / Vue Router / Fancybox / Shiki
 
@@ -186,6 +190,7 @@ AI_SUMMARY_MODE=code
 - [Fancybox](https://fancyapps.com/fancybox/)
 - [Shiki](https://github.com/shikijs/shiki)
 - [Chroma](https://github.com/alecthomas/chroma)
+- [enry](https://github.com/go-enry/go-enry)
 
 ## 许可证
 
