@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/harveyTon/trilium-blog/backend/etapi"
 )
@@ -35,6 +37,44 @@ func (s *memoryStore) Set(key string, value string, ttlSeconds int) error {
 	defer s.mu.Unlock()
 	s.data[key] = value
 	return nil
+}
+
+func (s *memoryStore) TTL(key string) (time.Duration, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.data[key]; !ok {
+		return 0, ErrCacheMiss
+	}
+	return 60 * time.Second, nil
+}
+
+func (s *memoryStore) Del(keys ...string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, k := range keys {
+		delete(s.data, k)
+	}
+	return nil
+}
+
+func (s *memoryStore) Keys(pattern string) ([]string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var result []string
+	for k := range s.data {
+		if matchPattern(k, pattern) {
+			result = append(result, k)
+		}
+	}
+	return result, nil
+}
+
+func matchPattern(key, pattern string) bool {
+	if pattern == "*" {
+		return true
+	}
+	prefix := strings.TrimSuffix(pattern, "*")
+	return strings.HasPrefix(key, prefix)
 }
 
 func TestGetPostCachesResolvedPost(t *testing.T) {

@@ -41,6 +41,11 @@ func setupRouter(apiHandler *handlers.APIHandler) *gin.Engine {
 		api.GET("/assets/:attachmentId", apiHandler.GetAsset)
 		api.GET("/imageproxy", apiHandler.ImageProxy)
 	}
+	admin := r.Group("/api/admin")
+	admin.Use(apiHandler.AdminAuthMiddleware)
+	{
+		admin.POST("/cache/invalidate", apiHandler.InvalidateCache)
+	}
 	r.GET("/sitemap.xml", apiHandler.Sitemap)
 	r.GET("/robots.txt", apiHandler.Robots)
 
@@ -137,7 +142,7 @@ func main() {
 		blog.WithAISummaryQueue(aiQueue),
 		blog.WithAISummaryEnabled(aiSummaryEnabled),
 	)
-	apiHandler := handlers.NewAPIHandler(service)
+	apiHandler := handlers.NewAPIHandler(service, config.Config.AdminToken)
 	r := setupRouter(apiHandler)
 
 	go service.Preload()

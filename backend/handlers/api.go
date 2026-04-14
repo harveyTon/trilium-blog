@@ -18,11 +18,74 @@ var blockedIPNets = mustParseCIDRs([]string{
 })
 
 type APIHandler struct {
-	service *blog.Service
+	service    *blog.Service
+	adminToken string
 }
 
-func NewAPIHandler(service *blog.Service) *APIHandler {
-	return &APIHandler{service: service}
+func NewAPIHandler(service *blog.Service, adminToken string) *APIHandler {
+	return &APIHandler{service: service, adminToken: adminToken}
+}
+
+func (h *APIHandler) AdminAuthMiddleware(c *gin.Context) {
+	if h.adminToken == "" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "admin token not configured"})
+		c.Abort()
+		return
+	}
+	token := c.GetHeader("Authorization")
+	if token == "" {
+		token = c.Query("token")
+	}
+	if strings.HasPrefix(token, "Bearer ") {
+		token = strings.TrimPrefix(token, "Bearer ")
+	}
+	if token != h.adminToken {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid admin token"})
+		c.Abort()
+		return
+	}
+	c.Next()
+}
+
+type invalidateRequest struct {
+	Scope string `json:"scope"`
+	ID    string `json:"id"`
+}
+
+func (h *APIHandler) InvalidateCache(c *gin.Context) {
+	var req invalidateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		req.Scope = "all"
+	}
+
+	switch req.Scope {
+	case "note":
+		if req.ID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "id is required for note scope"})
+			return
+		}
+		h.service.InvalidateNote(req.ID)
+		c.JSON(http.StatusOK, gin.H{"invalidated": "note", "id": req.ID})
+	case "notes-list":
+		if req.ID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "id (search key) is required for notes-list scope"})
+			return
+		}
+		h.service.InvalidateNotesList(req.ID)
+		c.JSON(http.StatusOK, gin.H{"invalidated": "notes-list", "id": req.ID})
+	case "attachment":
+		if req.ID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "id is required for attachment scope"})
+			return
+		}
+		h.service.InvalidateAttachment(req.ID)
+		c.JSON(http.StatusOK, gin.H{"invalidated": "attachment", "id": req.ID})
+	case "all", "":
+		count := h.service.InvalidateAll()
+		c.JSON(http.StatusOK, gin.H{"invalidated": "all", "keys_removed": count})
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid scope, use: all, note, notes-list, attachment"})
+	}
 }
 
 func (h *APIHandler) GetSite(c *gin.Context) {

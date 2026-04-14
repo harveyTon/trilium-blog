@@ -35,6 +35,7 @@ type AppConfig struct {
 	BlogSubtitle    string
 	Domain          string
 	Locale          string
+	AdminToken      string
 	ImageProxy      ImageProxyConfig
 	AISummary       AISummaryConfig
 }
@@ -50,6 +51,7 @@ func LoadConfig() {
 		BlogSubtitle:    getEnv("BLOG_SUBTITLE", ""),
 		Domain:          getEnv("DOMAIN", ""),
 		Locale:          normalizeLocale(getEnv("LOCALE", "zh-CN")),
+		AdminToken:      getEnv("ADMIN_TOKEN", ""),
 		ImageProxy: ImageProxyConfig{
 			Enabled: getEnvBool("IMAGE_PROXY_ENABLED", false),
 			BaseURL: getEnv("IMAGE_PROXY_BASE_URL", ""),

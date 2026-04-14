@@ -1,7 +1,6 @@
 package blog
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -17,13 +16,9 @@ import (
 	"github.com/microcosm-cc/bluemonday"
 )
 
-type Store interface {
-	Get(key string) (string, error)
-	Set(key string, value string, ttlSeconds int) error
-}
-
 type Service struct {
 	etapiClient       *etapi.Client
+	cache             *cacheLayer
 	store             Store
 	summaryStore      SummaryStore
 	aiQueue           *AISummaryQueue
@@ -38,13 +33,6 @@ type Service struct {
 }
 
 type ServiceOption func(*Service)
-
-const (
-	notesCacheTTLSeconds      = 300
-	noteCacheTTLSeconds       = 300
-	noteContentTTLSeconds     = 300
-	attachmentCacheTTLSeconds = 3600
-)
 
 func WithBlogTitle(title string) ServiceOption {
 	return func(s *Service) { s.blogTitle = title }
@@ -90,6 +78,7 @@ func NewService(client *etapi.Client, store Store, opts ...ServiceOption) *Servi
 	s := &Service{
 		etapiClient: client,
 		store:       store,
+		cache:       newCacheLayer(store),
 		pageSize:    9,
 	}
 	for _, opt := range opts {
@@ -98,98 +87,85 @@ func NewService(client *etapi.Client, store Store, opts ...ServiceOption) *Servi
 	return s
 }
 
-type cachedAttachment struct {
-	Content     []byte `json:"content"`
+type cachedAttachmentMeta struct {
 	ContentType string `json:"contentType"`
 }
 
-func (s *Service) cacheString(key string, ttlSeconds int, loader func() (string, error)) (string, error) {
-	if s.store != nil {
-		if cachedValue, err := s.store.Get(key); err == nil {
-			return cachedValue, nil
-		}
-	}
-
-	value, err := loader()
-	if err != nil {
-		return "", err
-	}
-
-	if s.store != nil {
-		_ = s.store.Set(key, value, ttlSeconds)
-	}
-	return value, nil
-}
-
-func cacheJSON[T any](store Store, key string, ttlSeconds int, loader func() (T, error)) (T, error) {
-	var zero T
-
-	if store != nil {
-		if cachedValue, err := store.Get(key); err == nil {
-			var decoded T
-			if unmarshalErr := json.Unmarshal([]byte(cachedValue), &decoded); unmarshalErr == nil {
-				return decoded, nil
-			}
-		}
-	}
-
-	value, err := loader()
-	if err != nil {
-		return zero, err
-	}
-
-	if store != nil {
-		if encoded, marshalErr := json.Marshal(value); marshalErr == nil {
-			_ = store.Set(key, string(encoded), ttlSeconds)
-		}
-	}
-
-	return value, nil
-}
-
 func (s *Service) getCachedNotes(search string) ([]etapi.Note, error) {
-	return cacheJSON(s.store, fmt.Sprintf("notes:%s", search), notesCacheTTLSeconds, func() ([]etapi.Note, error) {
-		return s.etapiClient.GetNotes(search)
-	})
+	var result []etapi.Note
+	if s.cache.readJSON(policyNotesList, search, &result) {
+		s.cache.maybeRefreshAhead(policyNotesList, search, func() {
+			if notes, err := s.etapiClient.GetNotes(search); err == nil {
+				s.cache.writeJSON(policyNotesList, search, notes)
+			}
+		})
+		return result, nil
+	}
+
+	loaded, err := s.etapiClient.GetNotes(search)
+	if err != nil {
+		return nil, err
+	}
+	s.cache.writeJSON(policyNotesList, search, loaded)
+	return loaded, nil
 }
 
 func (s *Service) getCachedNote(noteID string) (*etapi.Note, error) {
-	return cacheJSON(s.store, fmt.Sprintf("note:%s", noteID), noteCacheTTLSeconds, func() (*etapi.Note, error) {
-		return s.etapiClient.GetNote(noteID)
-	})
+	var result etapi.Note
+	if s.cache.readJSON(policyNote, noteID, &result) {
+		return &result, nil
+	}
+
+	loaded, err := s.etapiClient.GetNote(noteID)
+	if err != nil {
+		return nil, err
+	}
+	s.cache.writeJSON(policyNote, noteID, loaded)
+	return loaded, nil
 }
 
 func (s *Service) getCachedNoteContent(noteID string) (string, error) {
-	return s.cacheString(fmt.Sprintf("note-content:%s", noteID), noteContentTTLSeconds, func() (string, error) {
-		return s.etapiClient.GetNoteContent(noteID)
-	})
+	if val, ok := s.cache.get(policyNoteContent, noteID); ok {
+		return val, nil
+	}
+
+	loaded, err := s.etapiClient.GetNoteContent(noteID)
+	if err != nil {
+		return "", err
+	}
+	s.cache.set(policyNoteContent, noteID, loaded)
+	return loaded, nil
 }
 
-func (s *Service) getCachedAttachment(attachmentID string) (*cachedAttachment, error) {
-	return cacheJSON(s.store, fmt.Sprintf("attachment:%s", attachmentID), attachmentCacheTTLSeconds, func() (*cachedAttachment, error) {
-		attachment, err := s.etapiClient.GetAttachment(attachmentID)
-		if err != nil {
-			return nil, err
+func (s *Service) getCachedAttachment(attachmentID string) (data []byte, contentType string, err error) {
+	var meta cachedAttachmentMeta
+	if s.cache.readJSON(policyAttachmentMeta, attachmentID, &meta) {
+		if raw, ok := s.cache.get(policyAttachmentData, attachmentID); ok {
+			return []byte(raw), meta.ContentType, nil
 		}
+	}
 
-		note, err := s.getCachedNote(attachment.OwnerID)
-		if err != nil {
-			return nil, err
-		}
-		if !hasBlogLabel(note.Attributes) {
-			return nil, ErrNotBlogPost
-		}
+	attachment, err := s.etapiClient.GetAttachment(attachmentID)
+	if err != nil {
+		return nil, "", err
+	}
 
-		content, err := s.etapiClient.GetAttachmentContentBytes(attachmentID)
-		if err != nil {
-			return nil, err
-		}
+	note, err := s.getCachedNote(attachment.OwnerID)
+	if err != nil {
+		return nil, "", err
+	}
+	if !hasBlogLabel(note.Attributes) {
+		return nil, "", ErrNotBlogPost
+	}
 
-		return &cachedAttachment{
-			Content:     content,
-			ContentType: attachment.Mime,
-		}, nil
-	})
+	content, err := s.etapiClient.GetAttachmentContentBytes(attachmentID)
+	if err != nil {
+		return nil, "", err
+	}
+
+	s.cache.writeJSON(policyAttachmentMeta, attachmentID, cachedAttachmentMeta{ContentType: attachment.Mime})
+	s.cache.set(policyAttachmentData, attachmentID, string(content))
+	return content, attachment.Mime, nil
 }
 
 func (s *Service) GetSite() Site {
@@ -474,11 +450,11 @@ func (s *Service) GetPostSummaries(noteId string) (*Summaries, error) {
 }
 
 func (s *Service) GetAsset(attachmentId string) ([]byte, string, error) {
-	asset, err := s.getCachedAttachment(attachmentId)
+	data, contentType, err := s.getCachedAttachment(attachmentId)
 	if err != nil {
 		return nil, "", err
 	}
-	return asset.Content, asset.ContentType, nil
+	return data, contentType, nil
 }
 
 var ErrNotBlogPost = &BlogError{Message: "note is not a blog post"}
@@ -1363,11 +1339,14 @@ func extractAttachmentId(src string) string {
 }
 
 func (s *Service) Preload() {
+	logger.Info("Preload: starting")
+
 	notes, err := s.getCachedNotes("#blog=true")
 	if err != nil {
-		logger.Error("Preload: failed to fetch notes", err)
+		logger.Error("Preload: failed to fetch notes list", err)
 		return
 	}
+	logger.Info(fmt.Sprintf("Preload: notes list cached (%d notes)", len(notes)))
 
 	var blogNotes []etapi.Note
 	for _, n := range notes {
@@ -1394,7 +1373,7 @@ func (s *Service) Preload() {
 			defer wg.Done()
 			defer func() { <-sem }()
 			if _, err := s.getCachedNoteContent(noteID); err != nil {
-				logger.Error(fmt.Sprintf("Preload: failed to cache content for note %s", noteID), err)
+				logger.Error(fmt.Sprintf("Preload: failed for note %s", noteID), err)
 				failed++
 			} else {
 				cached++
@@ -1403,5 +1382,29 @@ func (s *Service) Preload() {
 	}
 	wg.Wait()
 
-	logger.Info(fmt.Sprintf("Preload: done (%d cached, %d failed)", cached, failed))
+	logger.Info(fmt.Sprintf("Preload: done (%d content cached, %d failed)", cached, failed))
+}
+
+func (s *Service) InvalidateNote(noteID string) {
+	s.cache.del(policyNote, noteID)
+	s.cache.del(policyNoteContent, noteID)
+}
+
+func (s *Service) InvalidateNotesList(search string) {
+	s.cache.del(policyNotesList, search)
+}
+
+func (s *Service) InvalidateAttachment(attachmentID string) {
+	s.cache.del(policyAttachmentMeta, attachmentID)
+	s.cache.del(policyAttachmentData, attachmentID)
+}
+
+func (s *Service) InvalidateAll() int {
+	total := 0
+	total += s.cache.delByPrefix(fmt.Sprintf("%s:v%d", policyNotesList.Prefix, policyNotesList.Version))
+	total += s.cache.delByPrefix(fmt.Sprintf("%s:v%d", policyNote.Prefix, policyNote.Version))
+	total += s.cache.delByPrefix(fmt.Sprintf("%s:v%d", policyNoteContent.Prefix, policyNoteContent.Version))
+	total += s.cache.delByPrefix(fmt.Sprintf("%s:v%d", policyAttachmentMeta.Prefix, policyAttachmentMeta.Version))
+	total += s.cache.delByPrefix(fmt.Sprintf("%s:v%d", policyAttachmentData.Prefix, policyAttachmentData.Version))
+	return total
 }
