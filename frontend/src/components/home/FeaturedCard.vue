@@ -1,17 +1,15 @@
 <template>
   <article class="featured-card">
     <router-link :to="{ name: 'Article', params: { noteId: post.noteId } }" class="featured-link">
-      <div class="featured-copy">
-        <div class="featured-top">
-          <p class="featured-kicker">精选</p>
-          <p class="featured-date">{{ formattedDate }}</p>
-        </div>
-        <div class="featured-title-wrap">
-          <h2 class="featured-title">{{ post.title }}</h2>
-        </div>
-        <div class="featured-summary-wrap">
-          <SummaryPreview :content="resolvedSummary" :type="summaryType" :lines="5" :flush="true" />
-        </div>
+      <div class="featured-meta">
+        <p class="featured-kicker">精选</p>
+        <p class="featured-date">{{ formattedDate }}</p>
+      </div>
+      <div class="featured-title-block">
+        <h2 class="featured-title">{{ post.title }}</h2>
+      </div>
+      <div class="featured-summary-block">
+        <SummaryPreview :content="resolvedSummary" :type="summaryType" :lines="4" :flush="true" />
       </div>
     </router-link>
   </article>
@@ -61,32 +59,34 @@ export default {
 
 <style scoped>
 .featured-card {
-  --featured-title-lines: 2;
-  --featured-title-line-height: 1.24;
-  --featured-summary-line-height: 1.78;
+  --fc-meta-to-title: 16px;
+  --fc-title-to-summary: 14px;
+  --fc-px: 28px;
+  --fc-py: 24px;
+  --fc-title-lh: 1.3;
+  --fc-summary-lh: 1.65;
   border: 1px solid var(--border-soft);
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface) 98%, white 2%), color-mix(in srgb, var(--surface) 94%, var(--bg) 6%));
-  border-radius: 20px;
+  border-radius: 16px;
+  background: var(--surface);
   height: 100%;
-  box-shadow: 0 8px 20px rgba(20, 30, 40, 0.06);
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  transition: transform 0.18s ease, border-color 0.18s ease;
   cursor: pointer;
 }
 
 .featured-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 34px rgba(20, 30, 40, 0.12);
-  border-color: color-mix(in srgb, var(--border-soft) 58%, var(--accent) 42%);
+  border-color: color-mix(in srgb, var(--border-soft) 50%, var(--accent) 50%);
 }
 
 .featured-link {
-  display: block;
-  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  padding: var(--fc-py) var(--fc-px);
   height: 100%;
   box-sizing: border-box;
   text-decoration: none;
-  min-height: 312px;
+  min-height: 280px;
+  max-height: 360px;
   cursor: pointer;
   border-radius: inherit;
   overflow: hidden;
@@ -94,11 +94,8 @@ export default {
 
 .featured-link:focus-visible {
   outline: none;
-}
-
-.featured-link:focus-visible .featured-copy {
-  border-color: color-mix(in srgb, var(--accent) 42%, var(--border-soft) 58%);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border-soft) 50%);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .featured-card:hover .featured-title,
@@ -106,35 +103,23 @@ export default {
   color: var(--link-hover);
 }
 
-.featured-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  height: 100%;
-  min-width: 0;
-  padding: 2px;
-  border-radius: 14px;
-}
-
-.featured-top {
+.featured-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  min-height: 22px;
+  flex-shrink: 0;
+  height: 20px;
 }
 
 .featured-kicker {
   margin: 0;
-  font-size: 12px;
-  color: var(--text-soft);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-weight: 600;
-  position: relative;
+  font-size: 11px;
+  color: var(--text-faint);
+  letter-spacing: 0.06em;
+  font-weight: 500;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .featured-kicker::before {
@@ -143,89 +128,84 @@ export default {
   height: 6px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--accent) 82%, transparent);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 10%, transparent);
-}
-
-.featured-title-wrap {
-  min-height: calc(2 * 1em * var(--featured-title-line-height) + 8px);
-  padding-bottom: 4px;
-}
-
-.featured-title {
-  margin: 0;
-  color: var(--text);
-  line-height: var(--featured-title-line-height);
-  font-size: clamp(22px, 2.4vw, 28px);
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: var(--featured-title-lines);
-  overflow: hidden;
-  text-wrap: pretty;
-}
-
-.featured-summary-wrap {
-  flex: 1 1 auto;
-  min-height: 8.8em;
-  display: flex;
-  align-items: flex-start;
-  overflow: hidden;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .featured-date {
   margin: 0;
   color: var(--text-faint);
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.featured-title-block {
+  margin-top: var(--fc-meta-to-title);
+  max-width: min(520px, 100%);
   flex-shrink: 0;
 }
 
-.featured-link :deep(.summary-preview) {
-  font-size: 15px;
-  line-height: var(--featured-summary-line-height);
+.featured-title {
+  margin: 0;
   color: var(--text);
+  line-height: var(--fc-title-lh);
+  font-size: clamp(20px, 2.2vw, 26px);
+  font-weight: 600;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.featured-summary-block {
+  margin-top: var(--fc-title-to-summary);
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.featured-link :deep(.summary-preview) {
+  margin: 0;
+  font-size: 14px;
+  line-height: var(--fc-summary-lh);
+  color: var(--text-soft);
   width: 100%;
 }
 
-.featured-link :deep(.summary-preview[data-summary-type="fallback"]) {
+.featured-link :deep(.summary-preview[data-summary-type="ai"]) {
   color: var(--text-soft);
 }
 
 .featured-link :deep(.summary-badge) {
-  transform: translateY(-1px);
+  font-size: 10px;
+  padding: 1px 5px 1px;
+  vertical-align: baseline;
 }
 
 @media (max-width: 768px) {
   .featured-card {
-    border-radius: 18px;
+    border-radius: 14px;
+    --fc-px: 20px;
+    --fc-py: 20px;
   }
 
   .featured-link {
-    min-height: 292px;
-    padding: 18px;
+    min-height: 260px;
+    max-height: 340px;
   }
 
   .featured-title {
     font-size: 19px;
   }
 
-  .featured-copy {
-    gap: 12px;
-  }
-
-  .featured-title-wrap {
-    min-height: calc(2 * 1em * var(--featured-title-line-height) + 6px);
-    padding-bottom: 2px;
-  }
-
-  .featured-summary-wrap {
-    min-height: 8.6em;
+  .featured-title-block {
+    max-width: 100%;
   }
 
   .featured-link :deep(.summary-preview) {
-    font-size: 14px;
-    line-height: 1.72;
+    font-size: 13px;
+    line-height: 1.6;
   }
 }
 </style>
