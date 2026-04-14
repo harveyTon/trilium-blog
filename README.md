@@ -85,6 +85,8 @@ npm run dev
 | `ARTICLES_PER_PAGE` | 否 | `9` | 每页文章数 |
 | `PORT` | 否 | `8080` | 服务端口 |
 | `LOCALE` | 否 | `zh-CN` | 博客语言，支持 `zh-CN`（中文）和 `en`（英文） |
+| `ADMIN_TOKEN` | 否 | — | 管理页面令牌，设置后启用 `/admin` 缓存管理页面 |
+| `LOG_LEVEL` | 否 | `info` | 日志级别：`debug`、`info`、`warn`、`error`、`fatal` |
 | `IMAGE_PROXY_ENABLED` | 否 | `false` | 启用外部图片代理 |
 | `IMAGE_PROXY_BASE_URL` | 否 | — | 外部图片代理 URL（留空则使用内置 `/api/imageproxy`） |
 | `AI_SUMMARY_ENABLED` | 否 | `false` | 开启摘要子系统 |
@@ -131,10 +133,19 @@ AI_SUMMARY_MODE=code
 
 ## 缓存与预加载
 
-- 所有文章列表、内容、附件均通过 Redis 缓存（默认 TTL 5 分钟）。
+- 所有文章列表、内容、附件均通过 Redis 缓存（策略驱动的 TTL 管理）。
 - 服务启动后会在后台异步预加载全部 `#blog=true` 文章的原始内容到 Redis，首次访问时直接命中缓存，无需等待 Trilium ETAPI 响应。
 - 预加载仅缓存原始内容，不触发 code summary 或 AI summary 生成。
 - 如果 Redis 不可用，自动降级为无缓存模式，所有请求直接转发至 Trilium。
+
+### 缓存管理
+
+设置 `ADMIN_TOKEN` 后，访问 `/admin` 进入缓存管理页面（支持中英双语）：
+
+- 查看 Redis 连接状态与各缓存类型的 key 数量、TTL 信息
+- 按类型或全局清除缓存
+- 按 note ID 或 attachment ID 精确失效
+- 手动触发预加载（不会在清除缓存后自动触发）
 
 ## 首页与文章页行为
 

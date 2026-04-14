@@ -86,6 +86,8 @@ All configuration is managed via environment variables (`.env` file):
 | `ARTICLES_PER_PAGE` | No | `9` | Articles per page |
 | `PORT` | No | `8080` | Server port |
 | `LOCALE` | No | `zh-CN` | Blog language, supports `zh-CN` (Chinese) and `en` (English) |
+| `ADMIN_TOKEN` | No | — | Admin page token; when set, enables the `/admin` cache management page |
+| `LOG_LEVEL` | No | `info` | Log level: `debug`, `info`, `warn`, `error`, `fatal` |
 | `IMAGE_PROXY_ENABLED` | No | `false` | Enable external image proxy |
 | `IMAGE_PROXY_BASE_URL` | No | — | External image proxy URL (leave empty to use built-in `/api/imageproxy`) |
 | `AI_SUMMARY_ENABLED` | No | `false` | Enable summary subsystem |
@@ -132,10 +134,19 @@ AI_SUMMARY_MODE=code
 
 ## Caching & Preloading
 
-- All article lists, content, and attachments are cached via Redis (default TTL 5 minutes).
+- All article lists, content, and attachments are cached via Redis (policy-driven TTL management).
 - On startup, all `#blog=true` article content is preloaded into Redis asynchronously; first visits hit cache directly without waiting for Trilium ETAPI.
 - Preloading only caches raw content and does not trigger code summary or AI summary generation.
 - If Redis is unavailable, the system falls back to no-cache mode, forwarding all requests directly to Trilium.
+
+### Cache Management
+
+Set `ADMIN_TOKEN` and visit `/admin` to access the cache management page (supports Chinese and English):
+
+- View Redis connection status and per-type cache key counts with TTL info
+- Clear cache by type or globally
+- Invalidate by note ID or attachment ID
+- Manually trigger preloading (not auto-triggered after cache clearing)
 
 ## Homepage & Article Pages
 
