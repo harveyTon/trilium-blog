@@ -7,7 +7,7 @@
 - 通过 ETAPI 与 Trilium Notes 集成，自动读取 `#blog=true` 笔记
 - 首页包含精选文章、最新文章分页列表与居中的全局搜索框
 - 独立搜索页与搜索预览面板
-- 精选文章桌面端卡片切换、移动端滑动切换与分页圆点切换
+- 精选文章单卡片全宽轮播，支持左右箭头、圆点与触摸滑动切换
 - AI summary / code summary 双摘要体系
 - 文章页优先加载正文，AI summary 异步生成与轮询回填，不阻塞阅读
 - 阅读模式：沉浸式排版、阅读进度、目录抽屉、宽度/密度/字体/主题设置
@@ -15,7 +15,7 @@
 - 后端使用 Chroma 识别代码语言，前端使用 Shiki 渲染高亮
 - 图片灯箱（Fancybox）
 - 外部图片代理与内置 `/api/imageproxy`
-- Redis 缓存、SQLite 摘要存储
+- Redis 缓存、启动时异步预加载文章内容、SQLite 摘要存储
 - 暗黑模式与移动端适配
 - `sitemap.xml` / `robots.txt`
 
@@ -123,6 +123,13 @@ AI_SUMMARY_ENABLED=false
 ```env
 AI_SUMMARY_MODE=code
 ```
+
+## 缓存与预加载
+
+- 所有文章列表、内容、附件均通过 Redis 缓存（默认 TTL 5 分钟）。
+- 服务启动后会在后台异步预加载全部 `#blog=true` 文章的原始内容到 Redis，首次访问时直接命中缓存，无需等待 Trilium ETAPI 响应。
+- 预加载仅缓存原始内容，不触发 code summary 或 AI summary 生成。
+- 如果 Redis 不可用，自动降级为无缓存模式，所有请求直接转发至 Trilium。
 
 ## 首页与文章页行为
 
