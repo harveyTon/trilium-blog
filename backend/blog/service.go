@@ -1169,18 +1169,29 @@ var triliumClassToLangID = map[string]string{
 	"language-text-x-rst":                          "rst",
 }
 
+var ignoredLanguageClasses = map[string]bool{
+	"language-auto":                true,
+	"language-text":                true,
+	"language-plain":               true,
+	"language-default":             true,
+	"language-text-x-trilium-auto": true,
+}
+
 func normalizeCodeLanguageClass(className string) (string, string, bool) {
 	if className == "" {
 		return "", "", false
 	}
 
 	for _, classToken := range strings.Fields(className) {
+		if ignoredLanguageClasses[classToken] {
+			continue
+		}
 		if languageID, ok := triliumClassToLangID[classToken]; ok {
 			return languageID, "class", true
 		}
 		if strings.HasPrefix(classToken, "language-") {
 			languageID := normalizeLanguageID(strings.TrimPrefix(classToken, "language-"))
-			if languageID != "" {
+			if languageID != "" && languageID != "plaintext" {
 				return languageID, "class", true
 			}
 		}
