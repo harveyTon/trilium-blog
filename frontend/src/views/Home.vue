@@ -55,7 +55,7 @@
 
 <script>
 import { ElButton, ElEmpty, ElPagination } from "element-plus";
-import { onMounted, ref, watch } from "vue";
+import { onActivated, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import FeaturedSection from "../components/home/FeaturedSection.vue";
 import PostFeed from "../components/home/PostFeed.vue";
@@ -169,7 +169,11 @@ export default {
     };
 
     const buildSiteTitle = () => {
-      return [siteStore.site.title, siteStore.site.subtitle].filter(Boolean).join(" | ");
+      const baseTitle = [siteStore.site.title, siteStore.site.subtitle].filter(Boolean).join(" | ");
+      if (!baseTitle) {
+        return "";
+      }
+      return currentPage.value > 1 ? `${baseTitle} - 第 ${currentPage.value} 页` : baseTitle;
     };
 
     const syncTitle = () => {
@@ -185,6 +189,10 @@ export default {
       syncTitle();
     });
 
+    onActivated(() => {
+      syncTitle();
+    });
+
     watch(
       () => route.query.page,
       async (nextPage) => {
@@ -194,10 +202,15 @@ export default {
         }
         currentPage.value = parsedPage;
         await loadPosts(parsedPage);
+        syncTitle();
       }
     );
 
-    watch(() => [siteStore.site.title, siteStore.site.subtitle], syncTitle, { immediate: true });
+    watch(
+      () => [siteStore.site.title, siteStore.site.subtitle, currentPage.value],
+      syncTitle,
+      { immediate: true }
+    );
 
     return {
       posts,
