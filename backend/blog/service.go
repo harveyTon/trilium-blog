@@ -25,8 +25,8 @@ type Service struct {
 	store             Store
 	summaryStore      SummaryStore
 	aiQueue           *AISummaryQueue
-	blogName          string
 	blogTitle         string
+	blogSubtitle      string
 	domain            string
 	pageSize          int
 	imageProxyEnabled bool
@@ -43,12 +43,12 @@ const (
 	attachmentCacheTTLSeconds = 3600
 )
 
-func WithBlogName(name string) ServiceOption {
-	return func(s *Service) { s.blogName = name }
-}
-
 func WithBlogTitle(title string) ServiceOption {
 	return func(s *Service) { s.blogTitle = title }
+}
+
+func WithBlogSubtitle(subtitle string) ServiceOption {
+	return func(s *Service) { s.blogSubtitle = subtitle }
 }
 
 func WithDomain(domain string) ServiceOption {
@@ -187,9 +187,9 @@ func (s *Service) getCachedAttachment(attachmentID string) (*cachedAttachment, e
 
 func (s *Service) GetSite() Site {
 	return Site{
-		Name:   s.blogName,
-		Title:  s.blogTitle,
-		Domain: s.domain,
+		Title:    s.blogTitle,
+		Subtitle: s.blogSubtitle,
+		Domain:   s.domain,
 		Comments: CommentsConfig{
 			Enabled: false,
 		},

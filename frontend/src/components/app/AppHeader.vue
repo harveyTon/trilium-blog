@@ -11,8 +11,11 @@
       </button>
 
       <router-link :to="{ name: 'HomePage' }" class="blog-brand" @click="handleBrandClick">
-        <img :src="logoSrc" :alt="site.name + ' - 返回首页'" class="blog-logo" />
-        <span class="blog-title">{{ site.name }}</span>
+        <img :src="logoSrc" :alt="site.title + ' - 返回首页'" class="blog-logo" />
+        <span class="blog-brand-copy">
+          <span class="blog-title">{{ site.title }}</span>
+          <span v-if="site.subtitle" class="blog-subtitle">{{ site.subtitle }}</span>
+        </span>
       </router-link>
 
       <div class="header-search">
@@ -130,9 +133,25 @@ export default {
 .blog-brand {
   display: inline-flex;
   align-items: center;
+  gap: 12px;
   min-width: 0;
   position: relative;
   z-index: 2;
+}
+
+.blog-brand-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.blog-subtitle {
+  color: var(--text-faint);
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-search {
@@ -185,6 +204,7 @@ export default {
     grid-area: brand;
     justify-self: center;
     align-self: center;
+    gap: 10px;
   }
 
   .header-search {
@@ -200,6 +220,10 @@ export default {
     display: inline;
     font-size: 1.05rem;
     white-space: nowrap;
+  }
+
+  .blog-subtitle {
+    display: none;
   }
 
   .mobile-search-modal {

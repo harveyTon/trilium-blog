@@ -4,8 +4,8 @@ import { fetchSite } from "../api/blog";
 export const useSiteStore = defineStore("site", {
   state: () => ({
     site: {
-      name: "",
       title: "",
+      subtitle: "",
       domain: "",
       comments: {
         enabled: false,
@@ -24,7 +24,7 @@ export const useSiteStore = defineStore("site", {
       try {
         const data = await fetchSite();
         this.site = data;
-        document.title = data.title || "";
+        document.title = [data.title, data.subtitle].filter(Boolean).join(" | ");
         this.loaded = true;
       } catch (error) {
         console.error("Fetch Site Info Error:", error);

@@ -68,8 +68,8 @@ type SearchMatch struct {
 }
 
 type Site struct {
-	Name       string           `json:"name"`
 	Title      string           `json:"title"`
+	Subtitle   string           `json:"subtitle"`
 	Domain     string           `json:"domain"`
 	Comments   CommentsConfig   `json:"comments"`
 	ImageProxy ImageProxyConfig `json:"imageProxy"`

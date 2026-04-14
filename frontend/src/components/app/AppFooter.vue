@@ -3,7 +3,7 @@
     <div class="footer-content">
       <div class="footer-text">
         <p>
-          © {{ new Date().getFullYear() }} {{ site.name }}.
+          © {{ new Date().getFullYear() }} {{ site.title }}.
           保留所有权利。
         </p>
         <p>

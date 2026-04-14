@@ -168,9 +168,14 @@ export default {
         .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "");
     };
 
+    const buildSiteTitle = () => {
+      return [siteStore.site.title, siteStore.site.subtitle].filter(Boolean).join(" | ");
+    };
+
     const syncTitle = () => {
-      if (siteStore.site.title) {
-        document.title = siteStore.site.title;
+      const nextTitle = buildSiteTitle();
+      if (nextTitle) {
+        document.title = nextTitle;
       }
     };
 
@@ -192,7 +197,7 @@ export default {
       }
     );
 
-    watch(() => siteStore.site.title, syncTitle, { immediate: true });
+    watch(() => [siteStore.site.title, siteStore.site.subtitle], syncTitle, { immediate: true });
 
     return {
       posts,

@@ -9,7 +9,7 @@ import (
 
 // GetBlogInfo godoc
 // @Summary Get blog information
-// @Description Retrieve the blog's name and title from the configuration
+// @Description Retrieve the blog's title and subtitle from the configuration
 // @Tags blog
 // @Accept json
 // @Produce json
@@ -17,7 +17,7 @@ import (
 // @Router /blog/info [get]
 func GetBlogInfo(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"blogName":  config.Config.BlogName,
-		"blogTitle": config.Config.BlogTitle,
+		"blogTitle":    config.Config.BlogTitle,
+		"blogSubtitle": config.Config.BlogSubtitle,
 	})
 }

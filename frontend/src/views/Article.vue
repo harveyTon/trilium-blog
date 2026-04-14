@@ -323,7 +323,7 @@ export default {
         pageTitle: post.value.title,
         pvEl: ".artalk-pv-count",
         server: site.value.comments.server,
-        site: site.value.comments.site || site.value.name,
+        site: site.value.comments.site || site.value.title,
         darkMode: isDarkMode(),
       });
     };
@@ -434,7 +434,8 @@ export default {
 
     const syncTitle = () => {
       if (post.value && site.value.title) {
-        document.title = `${post.value.title} - ${site.value.title}`;
+        const siteTitle = [site.value.title, site.value.subtitle].filter(Boolean).join(" | ");
+        document.title = siteTitle ? `${post.value.title} - ${siteTitle}` : post.value.title;
       }
     };
 

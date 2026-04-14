@@ -126,8 +126,8 @@ func main() {
 	service := blog.NewService(
 		etapiClient,
 		cacheStore,
-		blog.WithBlogName(config.Config.BlogName),
 		blog.WithBlogTitle(config.Config.BlogTitle),
+		blog.WithBlogSubtitle(config.Config.BlogSubtitle),
 		blog.WithDomain(config.Config.Domain),
 		blog.WithPageSize(config.Config.ArticlesPerPage),
 		blog.WithImageProxyEnabled(config.Config.ImageProxy.Enabled),

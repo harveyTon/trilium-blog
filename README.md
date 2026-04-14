@@ -64,8 +64,8 @@ npm run dev
 |------|------|--------|------|
 | `TRILIUM_API_URL` | 是 | — | Trilium ETAPI 地址 |
 | `TRILIUM_TOKEN` | 是 | — | ETAPI Token |
-| `BLOG_NAME` | 否 | — | 博客名称 |
-| `BLOG_TITLE` | 否 | — | 页面标题 |
+| `BLOG_TITLE` | 否 | — | 博客主标题 |
+| `BLOG_SUBTITLE` | 否 | — | 博客副标题 |
 | `DOMAIN` | 否 | — | 博客域名（用于内部资产判断） |
 | `ARTICLES_PER_PAGE` | 否 | `9` | 每页文章数 |
 | `PORT` | 否 | `8080` | 服务端口 |

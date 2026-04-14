@@ -31,8 +31,8 @@ type AppConfig struct {
 	TriliumApiUrl   string
 	TriliumToken    string
 	ArticlesPerPage int
-	BlogName        string
 	BlogTitle       string
+	BlogSubtitle    string
 	Domain          string
 	ImageProxy      ImageProxyConfig
 	AISummary       AISummaryConfig
@@ -45,8 +45,8 @@ func LoadConfig() {
 		TriliumApiUrl:   getEnv("TRILIUM_API_URL", ""),
 		TriliumToken:    getEnv("TRILIUM_TOKEN", ""),
 		ArticlesPerPage: getEnvInt("ARTICLES_PER_PAGE", 9),
-		BlogName:        getEnv("BLOG_NAME", ""),
 		BlogTitle:       getEnv("BLOG_TITLE", ""),
+		BlogSubtitle:    getEnv("BLOG_SUBTITLE", ""),
 		Domain:          getEnv("DOMAIN", ""),
 		ImageProxy: ImageProxyConfig{
 			Enabled: getEnvBool("IMAGE_PROXY_ENABLED", false),
