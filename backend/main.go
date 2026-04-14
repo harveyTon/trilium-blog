@@ -44,7 +44,12 @@ func setupRouter(apiHandler *handlers.APIHandler) *gin.Engine {
 	admin := r.Group("/api/admin")
 	admin.Use(apiHandler.AdminAuthMiddleware)
 	{
+		admin.GET("/cache/stats", apiHandler.CacheStats)
 		admin.POST("/cache/invalidate", apiHandler.InvalidateCache)
+		admin.POST("/cache/preload", apiHandler.TriggerPreload)
+	}
+	if config.Config.AdminToken != "" {
+		r.GET("/admin", apiHandler.AdminPage)
 	}
 	r.GET("/sitemap.xml", apiHandler.Sitemap)
 	r.GET("/robots.txt", apiHandler.Robots)

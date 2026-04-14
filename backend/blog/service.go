@@ -22,6 +22,8 @@ type Service struct {
 	store             Store
 	summaryStore      SummaryStore
 	aiQueue           *AISummaryQueue
+	preloadMu         sync.Mutex
+	preloading        bool
 	blogTitle         string
 	blogSubtitle      string
 	domain            string
@@ -1400,11 +1402,46 @@ func (s *Service) InvalidateAttachment(attachmentID string) {
 }
 
 func (s *Service) InvalidateAll() int {
+	return s.invalidateByPolicies(allPolicies)
+}
+
+func (s *Service) InvalidateByType(typeName string) int {
+	for _, p := range allPolicies {
+		if p.Prefix == typeName {
+			return s.cache.delByPrefix(fmt.Sprintf("%s:v%d", p.Prefix, p.Version))
+		}
+	}
+	return 0
+}
+
+func (s *Service) invalidateByPolicies(policies []cachePolicy) int {
 	total := 0
-	total += s.cache.delByPrefix(fmt.Sprintf("%s:v%d", policyNotesList.Prefix, policyNotesList.Version))
-	total += s.cache.delByPrefix(fmt.Sprintf("%s:v%d", policyNote.Prefix, policyNote.Version))
-	total += s.cache.delByPrefix(fmt.Sprintf("%s:v%d", policyNoteContent.Prefix, policyNoteContent.Version))
-	total += s.cache.delByPrefix(fmt.Sprintf("%s:v%d", policyAttachmentMeta.Prefix, policyAttachmentMeta.Version))
-	total += s.cache.delByPrefix(fmt.Sprintf("%s:v%d", policyAttachmentData.Prefix, policyAttachmentData.Version))
+	for _, p := range policies {
+		total += s.cache.delByPrefix(fmt.Sprintf("%s:v%d", p.Prefix, p.Version))
+	}
 	return total
+}
+
+func (s *Service) GetCacheStats() CacheStats {
+	return s.cache.stats()
+}
+
+func (s *Service) TriggerPreload() bool {
+	s.preloadMu.Lock()
+	if s.preloading {
+		s.preloadMu.Unlock()
+		return false
+	}
+	s.preloading = true
+	s.preloadMu.Unlock()
+
+	go func() {
+		defer func() {
+			s.preloadMu.Lock()
+			s.preloading = false
+			s.preloadMu.Unlock()
+		}()
+		s.Preload()
+	}()
+	return true
 }

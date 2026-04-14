@@ -49,6 +49,7 @@ func (h *APIHandler) AdminAuthMiddleware(c *gin.Context) {
 
 type invalidateRequest struct {
 	Scope string `json:"scope"`
+	Type  string `json:"type"`
 	ID    string `json:"id"`
 }
 
@@ -80,12 +81,29 @@ func (h *APIHandler) InvalidateCache(c *gin.Context) {
 		}
 		h.service.InvalidateAttachment(req.ID)
 		c.JSON(http.StatusOK, gin.H{"invalidated": "attachment", "id": req.ID})
+	case "type":
+		count := h.service.InvalidateByType(req.Type)
+		c.JSON(http.StatusOK, gin.H{"invalidated": req.Type, "keys_removed": count})
 	case "all", "":
 		count := h.service.InvalidateAll()
 		c.JSON(http.StatusOK, gin.H{"invalidated": "all", "keys_removed": count})
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid scope, use: all, note, notes-list, attachment"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid scope, use: all, type, note, notes-list, attachment"})
 	}
+}
+
+func (h *APIHandler) CacheStats(c *gin.Context) {
+	stats := h.service.GetCacheStats()
+	c.JSON(http.StatusOK, stats)
+}
+
+func (h *APIHandler) TriggerPreload(c *gin.Context) {
+	started := h.service.TriggerPreload()
+	if !started {
+		c.JSON(http.StatusConflict, gin.H{"error": "preload already in progress"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "preload started"})
 }
 
 func (h *APIHandler) GetSite(c *gin.Context) {

@@ -50,6 +50,72 @@ func (p cachePolicy) ttl() time.Duration {
 
 var ErrCacheMiss = &CacheError{Message: "cache miss"}
 
+type CacheTypeStats struct {
+	Name       string `json:"name"`
+	KeyCount   int    `json:"keyCount"`
+	MinTTL     string `json:"minTTL"`
+	MaxTTL     string `json:"maxTTL"`
+	TTLSeconds int    `json:"ttlSeconds"`
+}
+
+type CacheStats struct {
+	RedisConnected bool             `json:"redisConnected"`
+	Types          []CacheTypeStats `json:"types"`
+}
+
+var allPolicies = []cachePolicy{
+	policyNotesList,
+	policyNote,
+	policyNoteContent,
+	policyAttachmentMeta,
+	policyAttachmentData,
+}
+
+func (c *cacheLayer) stats() CacheStats {
+	result := CacheStats{}
+	if c.store == nil || c.noop {
+		return result
+	}
+	result.RedisConnected = true
+	for _, p := range allPolicies {
+		prefix := fmt.Sprintf("%s:v%d", p.Prefix, p.Version)
+		pattern := fmt.Sprintf("%s:*", prefix)
+		keys, err := c.store.Keys(pattern)
+		if err != nil {
+			result.Types = append(result.Types, CacheTypeStats{Name: p.Prefix, TTLSeconds: p.TTLSeconds})
+			continue
+		}
+		ts := CacheTypeStats{
+			Name:       p.Prefix,
+			KeyCount:   len(keys),
+			TTLSeconds: p.TTLSeconds,
+		}
+		if len(keys) > 0 {
+			var minTTL, maxTTL time.Duration
+			for i, k := range keys {
+				ttl, err := c.store.TTL(k)
+				if err != nil {
+					continue
+				}
+				if i == 0 || ttl < minTTL {
+					minTTL = ttl
+				}
+				if ttl > maxTTL {
+					maxTTL = ttl
+				}
+			}
+			if minTTL > 0 {
+				ts.MinTTL = minTTL.Truncate(time.Second).String()
+			}
+			if maxTTL > 0 {
+				ts.MaxTTL = maxTTL.Truncate(time.Second).String()
+			}
+		}
+		result.Types = append(result.Types, ts)
+	}
+	return result
+}
+
 type CacheError struct {
 	Message string
 }
