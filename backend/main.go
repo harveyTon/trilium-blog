@@ -84,11 +84,10 @@ func resolveFrontendDist() string {
 }
 
 func main() {
+	config.LoadConfig()
 	logger.Init(config.Config.LogLevel)
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = io.Discard
-
-	config.LoadConfig()
 
 	etapiClient := etapi.NewClient(config.Config.TriliumApiUrl, config.Config.TriliumToken)
 	var err error
