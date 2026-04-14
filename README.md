@@ -2,6 +2,8 @@
 
 中文 | **[English](README.en.md)**
 
+**演示：[虎笺.com](https://虎笺.com/)**
+
 基于 [TriliumNext Notes](https://github.com/TriliumNext/Trilium) 的轻量级博客系统。将 Trilium 中标记为 `#blog=true` 的笔记发布为博客文章。
 
 ## 特性

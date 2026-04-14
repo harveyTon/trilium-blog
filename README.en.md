@@ -2,6 +2,8 @@
 
 **[中文](README.md)** | English
 
+**Demo: [虎笺.com](https://虎笺.com/)**
+
 A lightweight blog system powered by [TriliumNext Notes](https://github.com/TriliumNext/Trilium). Publish notes tagged with `#blog=true` from Trilium as blog articles.
 
 ## Features
