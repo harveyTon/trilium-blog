@@ -259,6 +259,11 @@ body {
     --header-h: 50px;
   }
 
+  body.article-reading-mode .main-content {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
   .header-content,
   .footer-content,
   .main-content {

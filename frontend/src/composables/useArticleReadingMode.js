@@ -3,27 +3,34 @@ import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 const STORAGE_KEY = "trilium-blog-reading-mode";
 const WIDTH_OPTIONS = new Set(["compact", "comfortable"]);
 const DENSITY_OPTIONS = new Set(["comfortable", "relaxed"]);
+const FONT_SIZE_OPTIONS = new Set(["compact", "comfortable", "large"]);
 
 const DEFAULT_PREFERENCES = {
   enabled: false,
-  tocCollapsed: true,
+  readingTocCollapsed: true,
   width: "comfortable",
   density: "relaxed",
+  fontSize: "comfortable",
 };
 
 function sanitizePreferences(candidate = {}) {
   return {
     enabled: Boolean(candidate.enabled),
-    tocCollapsed:
-      typeof candidate.tocCollapsed === "boolean"
-        ? candidate.tocCollapsed
-        : DEFAULT_PREFERENCES.tocCollapsed,
+    readingTocCollapsed:
+      typeof candidate.readingTocCollapsed === "boolean"
+        ? candidate.readingTocCollapsed
+        : typeof candidate.tocCollapsed === "boolean"
+          ? candidate.tocCollapsed
+          : DEFAULT_PREFERENCES.readingTocCollapsed,
     width: WIDTH_OPTIONS.has(candidate.width)
       ? candidate.width
       : DEFAULT_PREFERENCES.width,
     density: DENSITY_OPTIONS.has(candidate.density)
       ? candidate.density
       : DEFAULT_PREFERENCES.density,
+    fontSize: FONT_SIZE_OPTIONS.has(candidate.fontSize)
+      ? candidate.fontSize
+      : DEFAULT_PREFERENCES.fontSize,
   };
 }
 
@@ -46,9 +53,10 @@ function readStoredPreferences() {
 export function useArticleReadingMode() {
   const stored = readStoredPreferences();
   const enabled = ref(stored.enabled);
-  const tocCollapsed = ref(stored.tocCollapsed);
+  const readingTocCollapsed = ref(stored.readingTocCollapsed);
   const width = ref(stored.width);
   const density = ref(stored.density);
+  const fontSize = ref(stored.fontSize);
   const hydrated = ref(false);
 
   const readingModeClass = computed(() => (enabled.value ? "reading-mode" : ""));
@@ -60,11 +68,12 @@ export function useArticleReadingMode() {
 
     window.localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({
-        enabled: enabled.value,
-        tocCollapsed: tocCollapsed.value,
-        width: width.value,
-        density: density.value,
+        JSON.stringify({
+          enabled: enabled.value,
+          readingTocCollapsed: readingTocCollapsed.value,
+          width: width.value,
+          density: density.value,
+          fontSize: fontSize.value,
       })
     );
   }
@@ -81,9 +90,9 @@ export function useArticleReadingMode() {
     enabled.value = !enabled.value;
   }
 
-  function toggleTocCollapsed(forceValue) {
-    tocCollapsed.value =
-      typeof forceValue === "boolean" ? forceValue : !tocCollapsed.value;
+  function toggleReadingTocCollapsed(forceValue) {
+    readingTocCollapsed.value =
+      typeof forceValue === "boolean" ? forceValue : !readingTocCollapsed.value;
   }
 
   function cycleWidth() {
@@ -92,6 +101,24 @@ export function useArticleReadingMode() {
 
   function cycleDensity() {
     density.value = density.value === "relaxed" ? "comfortable" : "relaxed";
+  }
+
+  function setWidth(nextWidth) {
+    if (WIDTH_OPTIONS.has(nextWidth)) {
+      width.value = nextWidth;
+    }
+  }
+
+  function setDensity(nextDensity) {
+    if (DENSITY_OPTIONS.has(nextDensity)) {
+      density.value = nextDensity;
+    }
+  }
+
+  function setFontSize(nextFontSize) {
+    if (FONT_SIZE_OPTIONS.has(nextFontSize)) {
+      fontSize.value = nextFontSize;
+    }
   }
 
   function onKeydown(event) {
@@ -109,19 +136,23 @@ export function useArticleReadingMode() {
     window.removeEventListener("keydown", onKeydown);
   });
 
-  watch([enabled, tocCollapsed, width, density], persist);
+  watch([enabled, readingTocCollapsed, width, density, fontSize], persist);
 
   return {
     enabled,
-    tocCollapsed,
+    readingTocCollapsed,
     width,
     density,
+    fontSize,
     readingModeClass,
     enterReadingMode,
     exitReadingMode,
     toggleReadingMode,
-    toggleTocCollapsed,
+    toggleReadingTocCollapsed,
     cycleWidth,
     cycleDensity,
+    setWidth,
+    setDensity,
+    setFontSize,
   };
 }

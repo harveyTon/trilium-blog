@@ -1,28 +1,20 @@
 <template>
   <div
-    v-if="items?.length >= 3"
+    v-if="items?.length >= 3 && (!readingMode || !collapsed)"
     :class="[
       'article-toc-wrapper',
       { 'is-collapsed': collapsed, 'is-reading-mode': readingMode },
     ]"
   >
     <aside class="article-toc">
-      <button
-        v-if="readingMode && collapsed"
-        type="button"
-        class="toc-collapsed-trigger"
-        @click="$emit('toggle-collapse')"
-      >
-        目录
-      </button>
-      <div v-else class="toc-panel">
+      <div :class="['toc-panel', { 'is-reading-drawer': readingMode }]">
         <div class="toc-header">
           <div class="toc-title">目录</div>
           <button type="button" class="toc-toggle" @click="$emit('toggle-collapse')">
-            {{ collapsed ? "展开" : "收起" }}
+            {{ readingMode ? "关闭" : collapsed ? "展开" : "收起" }}
           </button>
         </div>
-        <div v-if="!collapsed" class="toc-links">
+        <div v-if="readingMode || !collapsed" class="toc-links">
           <a
             v-for="item in items"
             :key="item.id"
@@ -66,10 +58,15 @@ export default {
 <style scoped>
 .article-toc-wrapper.is-reading-mode {
   width: auto;
+  position: fixed;
+  top: 60px;
+  right: 24px;
+  z-index: 1190;
 }
 
 .article-toc-wrapper.is-reading-mode .article-toc {
   overflow: visible;
+  max-height: none;
 }
 
 .toc-header {
@@ -79,7 +76,6 @@ export default {
   gap: 8px;
 }
 
-.toc-collapsed-trigger,
 .toc-toggle {
   border: none;
   background: transparent;
@@ -89,33 +85,41 @@ export default {
   padding: 0 6px;
 }
 
-.toc-collapsed-trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 52px;
-  min-height: 34px;
-  border: 1px solid color-mix(in srgb, var(--border-soft) 88%, transparent 12%);
-  border-radius: 999px;
-  padding: 0 12px;
-  background: color-mix(in srgb, var(--surface) 90%, transparent 10%);
-  box-shadow: var(--shadow-sm);
-  color: var(--text-soft);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .toc-links {
   display: flex;
   flex-direction: column;
 }
 
+.toc-panel.is-reading-drawer {
+  width: min(320px, calc(100vw - 48px));
+  max-height: calc(100vh - 92px);
+  padding: 16px 14px 14px;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface) 95%, transparent 5%);
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.16);
+  backdrop-filter: blur(18px);
+}
+
+.toc-panel.is-reading-drawer .toc-links {
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
 @media (max-width: 1024px) {
   .article-toc-wrapper {
-    display: block;
+    display: none;
     width: 100%;
+  }
+
+  .article-toc-wrapper.is-reading-mode {
+    display: block;
+    top: 56px;
+    right: 16px;
+  }
+
+  .toc-panel.is-reading-drawer {
+    width: min(320px, calc(100vw - 32px));
   }
 }
 </style>

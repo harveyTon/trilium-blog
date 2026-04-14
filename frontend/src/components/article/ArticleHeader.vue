@@ -4,10 +4,10 @@
       <h1 class="article-title">{{ title }}</h1>
       <div class="article-meta">
         <time>{{ formattedDate }}</time>
+        <div v-if="$slots.actions" class="article-header-actions">
+          <slot name="actions" />
+        </div>
       </div>
-    </div>
-    <div v-if="$slots.actions" class="article-header-actions">
-      <slot name="actions" />
     </div>
     <span class="artalk-pv-count" style="display: none"></span>
   </header>
@@ -31,33 +31,28 @@ export default {
 
 <style scoped>
 .article-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
+  display: block;
 }
 
 .article-header-main {
   min-width: 0;
-  flex: 1;
+}
+
+.article-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .article-header-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  flex-shrink: 0;
 }
 
 @media (max-width: 768px) {
-  .article-header {
-    flex-direction: column;
-    gap: 16px;
-  }
-
   .article-header-actions {
-    width: 100%;
-    justify-content: flex-start;
+    width: auto;
   }
 }
 </style>
