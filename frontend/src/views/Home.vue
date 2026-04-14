@@ -47,7 +47,7 @@
         :prev-text="'←'"
         :next-text="'→'"
         layout="prev, pager, next"
-        :ellipsis-item="'...'"
+        :pager-count="5"
       />
     </div>
   </div>

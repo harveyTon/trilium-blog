@@ -139,6 +139,7 @@ body {
   padding: 0;
   background-color: var(--bg);
   color: var(--text);
+  overscroll-behavior-y: none;
 }
 
 :focus-visible {
@@ -153,7 +154,7 @@ body {
 }
 
 .app-container {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -167,12 +168,15 @@ body {
 
 .app-header {
   position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
   z-index: 1000;
   height: var(--header-h);
   display: flex;
   align-items: center;
   box-shadow: var(--shadow-sm);
+  transform: translateZ(0);
 }
 
 .header-content {
