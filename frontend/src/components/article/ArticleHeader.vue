@@ -9,7 +9,6 @@
         </div>
       </div>
     </div>
-    <span class="artalk-pv-count" style="display: none"></span>
   </header>
 </template>
 

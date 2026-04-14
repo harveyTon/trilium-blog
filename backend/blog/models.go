@@ -71,14 +71,7 @@ type Site struct {
 	Title      string           `json:"title"`
 	Subtitle   string           `json:"subtitle"`
 	Domain     string           `json:"domain"`
-	Comments   CommentsConfig   `json:"comments"`
 	ImageProxy ImageProxyConfig `json:"imageProxy"`
-}
-
-type CommentsConfig struct {
-	Enabled bool   `json:"enabled"`
-	Server  string `json:"server"`
-	Site    string `json:"site"`
 }
 
 type ImageProxyConfig struct {

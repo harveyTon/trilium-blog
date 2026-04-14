@@ -7,11 +7,6 @@ export const useSiteStore = defineStore("site", {
       title: "",
       subtitle: "",
       domain: "",
-      comments: {
-        enabled: false,
-        server: "",
-        site: "",
-      },
       imageProxy: {
         enabled: false,
         baseUrl: "",

@@ -190,9 +190,6 @@ func (s *Service) GetSite() Site {
 		Title:    s.blogTitle,
 		Subtitle: s.blogSubtitle,
 		Domain:   s.domain,
-		Comments: CommentsConfig{
-			Enabled: false,
-		},
 		ImageProxy: ImageProxyConfig{
 			Enabled: s.imageProxyEnabled,
 			BaseURL: s.imageProxyBaseUrl,

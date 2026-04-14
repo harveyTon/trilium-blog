@@ -178,11 +178,6 @@
               :reading-mode="isReadingMode"
             />
             <SourceLinkBlock v-if="!isReadingMode" :page-url="post.pageUrl" />
-
-            <div v-if="site.comments.enabled && !isReadingMode" class="article-comments">
-              <h2>评论</h2>
-              <div ref="artalkContainer"></div>
-            </div>
           </main>
         </div>
 
@@ -199,8 +194,6 @@
 <script>
 import { ElButton } from "element-plus";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
-import Artalk from "artalk";
-import "artalk/dist/Artalk.css";
 import { storeToRefs } from "pinia";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -238,7 +231,6 @@ export default {
     const loading = ref(true);
     const loadError = ref(false);
     const activeHeading = ref("");
-    const artalkContainer = ref(null);
     const articleContentRef = ref(null);
     const standardTocCollapsed = ref(window.innerWidth <= 1024);
     const readingTopbarRef = ref(null);
@@ -268,8 +260,6 @@ export default {
     const currentTocCollapsed = computed(() =>
       isReadingMode.value ? readingTocCollapsed.value : standardTocCollapsed.value
     );
-    let artalkInstance = null;
-    let darkModeObserver = null;
     let headingObserver = null;
     let summaryPollTimer = null;
     let lastScrollY = 0;
@@ -307,27 +297,6 @@ export default {
 
     const { enhanceArticleContent, cleanupEnhancements } = useArticleEnhancements();
 
-    const destroyComments = () => {
-      if (artalkInstance) {
-        artalkInstance.destroy();
-        artalkInstance = null;
-      }
-    };
-
-    const initComments = () => {
-      destroyComments();
-      if (!site.value.comments.enabled || !artalkContainer.value || !post.value) return;
-      artalkInstance = Artalk.init({
-        el: artalkContainer.value,
-        pageKey: `/posts/${route.params.noteId}`,
-        pageTitle: post.value.title,
-        pvEl: ".artalk-pv-count",
-        server: site.value.comments.server,
-        site: site.value.comments.site || site.value.title,
-        darkMode: isDarkMode(),
-      });
-    };
-
     const setupHeadingObserver = () => {
       if (headingObserver) {
         headingObserver.disconnect();
@@ -361,7 +330,6 @@ export default {
         root,
         codeBlocks: post.value.codeBlocks || [],
       });
-      initComments();
       setupHeadingObserver();
       updateReadingProgress();
     };
@@ -577,22 +545,8 @@ export default {
       }
     };
 
-    const observeDarkMode = () => {
-      const observer = new MutationObserver(() => {
-        if (artalkInstance) {
-          artalkInstance.setDarkMode(isDarkMode());
-        }
-      });
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ["class"],
-      });
-      return observer;
-    };
-
     onMounted(async () => {
       await loadPost();
-      darkModeObserver = observeDarkMode();
       document.addEventListener("pointerdown", handlePointerDown);
       window.addEventListener("scroll", handleReadingScroll, { passive: true });
       window.addEventListener("resize", syncReadingTopbarHeight, { passive: true });
@@ -604,9 +558,7 @@ export default {
     onUnmounted(() => {
       stopSummaryPolling();
       cleanupEnhancements();
-      destroyComments();
       applyReadingModeDocumentState(false);
-      if (darkModeObserver) darkModeObserver.disconnect();
       if (headingObserver) headingObserver.disconnect();
       document.removeEventListener("pointerdown", handlePointerDown);
       window.removeEventListener("scroll", handleReadingScroll);
@@ -643,7 +595,6 @@ export default {
       readingFontSize,
       readingModeClass,
       readingProgress,
-      artalkContainer,
       articleContentRef,
       readingTopbarRef,
       readingSettingsRef,
@@ -680,8 +631,6 @@ function preferredSummaryText(summaries, fallback) {
 </script>
 
 <style>
-@import "artalk/dist/Artalk.css";
-
 /* ── Shell: dual-mode layout, no dead columns ── */
 .article-shell {
   max-width: 1200px;
@@ -1252,24 +1201,9 @@ html.dark .article-content :not(pre) > code {
   margin: 2.5em 0;
 }
 
-.article-shell.reading-mode .article-comments,
 .article-shell.reading-mode .article-source,
 .article-shell.reading-mode .article-summary-block {
   display: none;
-}
-
-/* ── Comments ── */
-.article-comments {
-  margin-top: 48px;
-  padding-top: 32px;
-  border-top: 1px solid var(--border-soft);
-}
-
-.article-comments h2 {
-  font-size: 20px;
-  font-weight: 600;
-  margin-bottom: 20px;
-  color: var(--text);
 }
 
 /* ── Responsive ── */
