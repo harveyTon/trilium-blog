@@ -32,9 +32,6 @@
           <div v-if="isReadingMode" class="reading-topbar">
             <button type="button" class="reading-topbar-link" @click="goHome">首页</button>
             <div class="reading-topbar-actions">
-              <button type="button" class="reading-topbar-link" @click="toggleTocCollapsed()">
-                {{ tocCollapsed ? "目录" : "收起目录" }}
-              </button>
               <button type="button" class="reading-topbar-link" @click="cycleWidth()">
                 {{ readingWidth === "comfortable" ? "宽度: 舒展" : "宽度: 紧凑" }}
               </button>
@@ -356,7 +353,9 @@ export default {
         headingObserver = null;
       }
       activeHeading.value = "";
-      tocCollapsed.value = window.innerWidth <= 1024;
+      if (!isReadingMode.value) {
+        tocCollapsed.value = window.innerWidth <= 1024;
+      }
       stopSummaryPolling();
       cleanupEnhancements();
       try {
@@ -420,9 +419,6 @@ export default {
       await nextTick();
       updateReadingProgress();
     }, { immediate: true });
-    watch([isReadingMode, readingWidth, readingDensity], async () => {
-      await enhanceContent();
-    });
 
     return {
       site,
