@@ -28,6 +28,7 @@ import { t } from "../../i18n";
 
 export default {
   name: "AppFooter",
+  methods: { t },
   components: {
     ElFooter,
   },

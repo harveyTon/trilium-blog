@@ -35,6 +35,7 @@ import { t } from "../../i18n";
 
 export default {
   name: "ArticleTOC",
+  methods: { t },
   props: {
     items: {
       type: Array,

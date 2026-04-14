@@ -18,6 +18,7 @@ import { t } from "../../i18n";
 
 export default {
   name: "PostFeed",
+  methods: { t },
   components: {
     PostCard,
   },

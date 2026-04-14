@@ -10,6 +10,7 @@ import { t } from "../../i18n";
 
 export default {
   name: "SearchFilters",
+  methods: { t },
 };
 </script>
 

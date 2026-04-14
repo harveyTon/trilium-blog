@@ -34,6 +34,7 @@ import { t } from "../../i18n";
 
 export default {
   name: "SearchPreviewPanel",
+  methods: { t },
   props: {
     items: {
       type: Array,

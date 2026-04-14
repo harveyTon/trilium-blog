@@ -18,6 +18,7 @@ import { t } from "../../i18n";
 
 export default {
   name: "SearchResultList",
+  methods: { t },
   components: {
     SearchResultCard,
   },

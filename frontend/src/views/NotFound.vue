@@ -21,6 +21,7 @@ export default {
     this.startCountdown();
   },
   methods: {
+    t,
     startCountdown() {
       const timer = setInterval(() => {
         this.countdown--;

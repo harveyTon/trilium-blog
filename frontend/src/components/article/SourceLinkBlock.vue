@@ -12,6 +12,7 @@ import { t } from "../../i18n";
 
 export default {
   name: "SourceLinkBlock",
+  methods: { t },
   props: {
     pageUrl: {
       type: String,
