@@ -10,7 +10,7 @@
           <h2 class="featured-title">{{ post.title }}</h2>
         </div>
         <div class="featured-summary-wrap">
-          <SummaryPreview :content="resolvedSummary" :type="summaryType" :lines="4" :flush="true" />
+          <SummaryPreview :content="resolvedSummary" :type="summaryType" :lines="5" :flush="true" />
         </div>
       </div>
     </router-link>
@@ -82,7 +82,7 @@ export default {
 
 .featured-link {
   display: block;
-  padding: 20px;
+  padding: 28px;
   height: 100%;
   box-sizing: border-box;
   text-decoration: none;
@@ -155,7 +155,7 @@ export default {
   margin: 0;
   color: var(--text);
   line-height: var(--featured-title-line-height);
-  font-size: clamp(20px, 1.9vw, 24px);
+  font-size: clamp(22px, 2.4vw, 28px);
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: var(--featured-title-lines);

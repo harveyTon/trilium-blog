@@ -58,7 +58,7 @@
 </template>
 
 <script>
-import { computed, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import FeaturedCard from "./FeaturedCard.vue";
 
 export default {
@@ -73,24 +73,19 @@ export default {
     },
   },
   setup(props) {
-    const visibleCount = ref(3);
     const currentPage = ref(0);
     const touchStartX = ref(0);
 
-    const syncVisibleCount = () => {
-      visibleCount.value = window.innerWidth <= 768 ? 1 : 3;
-    };
-
-    const totalPages = computed(() => Math.max(1, props.items.length - visibleCount.value + 1));
-    const showControls = computed(() => props.items.length > visibleCount.value);
-    const showDesktopControls = computed(() => showControls.value && visibleCount.value > 1);
+    const totalPages = computed(() => props.items.length);
+    const showControls = computed(() => props.items.length > 1);
+    const showDesktopControls = computed(() => props.items.length > 1);
     const maxPage = computed(() => Math.max(0, totalPages.value - 1));
     const trackStyle = computed(() => ({
-      transform: `translateX(calc(-1 * ${currentPage.value} * (100% + var(--featured-gap)) / ${visibleCount.value}))`,
+      transform: `translateX(-${currentPage.value * 100}%)`,
     }));
     const itemStyle = computed(() => ({
-      flex: `0 0 calc((100% - var(--featured-gap) * ${visibleCount.value - 1}) / ${visibleCount.value})`,
-      maxWidth: `calc((100% - var(--featured-gap) * ${visibleCount.value - 1}) / ${visibleCount.value})`,
+      flex: "0 0 100%",
+      maxWidth: "100%",
     }));
 
     const clampCurrentPage = () => {
@@ -126,16 +121,7 @@ export default {
       }
     };
 
-    watch([() => props.items.length, visibleCount], clampCurrentPage, { immediate: true });
-
-    onMounted(() => {
-      syncVisibleCount();
-      window.addEventListener("resize", syncVisibleCount);
-    });
-
-    onUnmounted(() => {
-      window.removeEventListener("resize", syncVisibleCount);
-    });
+    watch(() => props.items.length, clampCurrentPage, { immediate: true });
 
     return {
       currentPage,
@@ -183,7 +169,6 @@ export default {
 }
 
 .featured-carousel {
-  --featured-gap: 16px;
   position: relative;
   width: 100%;
 }
@@ -206,8 +191,8 @@ export default {
 }
 
 .featured-viewport {
-  padding: 6px 0 8px;
-  margin: -6px 0 -8px;
+  padding: 6px 2px 8px;
+  margin: -6px -2px -8px;
   overflow: hidden;
   min-width: 0;
   width: 100%;
@@ -217,14 +202,14 @@ export default {
 
 .featured-track {
   display: flex;
-  gap: var(--featured-gap);
   transition: transform 0.42s ease;
   will-change: transform;
   align-items: stretch;
 }
 
 .featured-item-shell {
-  min-width: 0;
+  min-width: 100%;
+  flex-shrink: 0;
   display: flex;
 }
 
@@ -310,10 +295,6 @@ export default {
 }
 
 @media (max-width: 768px) {
-  .featured-carousel {
-    --featured-gap: 12px;
-  }
-
   .featured-carousel::after {
     left: 10px;
     right: 10px;
