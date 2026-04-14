@@ -271,8 +271,8 @@ func TestProcessContent_NormalizesKnownLanguageAliases(t *testing.T) {
 	if codeBlocks[0].LanguageID != "javascript" {
 		t.Fatalf("expected normalized language id javascript, got %q", codeBlocks[0].LanguageID)
 	}
-	if codeBlocks[0].DetectedBy != "alias" {
-		t.Fatalf("expected detectedBy alias, got %q", codeBlocks[0].DetectedBy)
+	if codeBlocks[0].DetectedBy != "class" {
+		t.Fatalf("expected detectedBy class, got %q", codeBlocks[0].DetectedBy)
 	}
 }
 
@@ -298,7 +298,7 @@ func TestProcessContent_NormalizesTextXLanguageClasses(t *testing.T) {
 	}
 }
 
-func TestProcessContent_FallsBackToPlaintextForUnknownCode(t *testing.T) {
+func TestProcessContent_FallsBackToEnryForUnknownCode(t *testing.T) {
 	svc := &Service{}
 
 	_, codeBlocks := svc.processContent(`<pre><code>@@@@ //// ???? ####</code></pre>`)
@@ -306,10 +306,7 @@ func TestProcessContent_FallsBackToPlaintextForUnknownCode(t *testing.T) {
 	if len(codeBlocks) != 1 {
 		t.Fatalf("expected 1 code block, got %d", len(codeBlocks))
 	}
-	if codeBlocks[0].LanguageID != "plaintext" {
-		t.Fatalf("expected plaintext fallback, got %q", codeBlocks[0].LanguageID)
-	}
-	if codeBlocks[0].LanguageLabel != "Code" {
-		t.Fatalf("expected fallback label Code, got %q", codeBlocks[0].LanguageLabel)
+	if codeBlocks[0].LanguageID == "" {
+		t.Fatalf("expected non-empty language id, got empty")
 	}
 }

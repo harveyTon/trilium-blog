@@ -11,6 +11,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/go-enry/go-enry/v2"
 	"github.com/harveyTon/trilium-blog/backend/etapi"
 	"github.com/harveyTon/trilium-blog/backend/pkg/logger"
 	"github.com/microcosm-cc/bluemonday"
@@ -946,42 +947,64 @@ func (s *Service) processContent(html string) (string, []CodeBlock) {
 	return strings.TrimSpace(result), codeBlocks
 }
 
+var enryClassifierCandidates = []string{
+	"JavaScript", "TypeScript", "Python", "Shell", "Go", "Java",
+	"C", "C++", "C#", "Rust", "SQL", "HTML", "CSS", "JSON",
+	"YAML", "Ruby", "PHP", "Swift", "Kotlin", "Dart", "Scala",
+	"R", "Lua", "Perl", "GDScript", "Objective-C", "PowerShell",
+	"Dockerfile", "Makefile", "TOML", "XML", "Markdown",
+	"Haskell", "Elixir", "Erlang", "Clojure", "Scheme", "Bash",
+}
+
 func detectCodeBlockLanguage(codeText, className string) (string, string) {
-	fallbackLanguageID, fallbackDetectedBy, hasFallback := normalizeCodeLanguageClass(className)
+	classID, classDetectedBy, hasClass := normalizeCodeLanguageClass(className)
 	trimmed := strings.TrimSpace(stripControlRunes(codeText))
 
 	if trimmed == "" {
-		if hasFallback {
-			return fallbackLanguageID, fallbackDetectedBy
+		if hasClass {
+			return classID, classDetectedBy
 		}
 		return "plaintext", "fallback"
 	}
 
-	lexer := lexers.Analyse(codeText)
-	if lexer != nil {
+	if hasClass {
+		if resolved := resolveChromaLanguageID(classID); resolved != "" {
+			return resolved, classDetectedBy
+		}
+		return classID, classDetectedBy
+	}
+
+	if lexer := lexers.Analyse(codeText); lexer != nil {
 		languageID := normalizeLanguageID(lexer.Config().Name)
 		if languageID == "" && len(lexer.Config().Aliases) > 0 {
 			languageID = normalizeLanguageID(lexer.Config().Aliases[0])
 		}
 		if languageID != "" {
-			if !hasFallback || len(trimmed) >= 200 || languageID == fallbackLanguageID {
-				return languageID, "analyse"
-			}
-			resolvedFallback := resolveChromaLanguageID(fallbackLanguageID)
-			if languageID == resolvedFallback {
-				return languageID, "analyse"
-			}
+			return languageID, "analyse"
 		}
 	}
 
-	if hasFallback {
-		if resolvedLanguageID := resolveChromaLanguageID(fallbackLanguageID); resolvedLanguageID != "" {
-			return resolvedLanguageID, fallbackDetectedBy
+	if lang, _ := enry.GetLanguageByClassifier([]byte(trimmed), enryClassifierCandidates); lang != "" {
+		if normalized := normalizeLanguageID(enryLangToID(lang)); normalized != "" && normalized != "plaintext" {
+			return normalized, "enry"
 		}
-		return fallbackLanguageID, fallbackDetectedBy
 	}
 
 	return "plaintext", "fallback"
+}
+
+func enryLangToID(lang string) string {
+	switch strings.ToLower(lang) {
+	case "c++":
+		return "cpp"
+	case "c#":
+		return "csharp"
+	case "objective-c++":
+		return "objective-cpp"
+	case "visual basic .net":
+		return "vb"
+	}
+	return strings.ToLower(lang)
 }
 
 func resolveChromaLanguageID(languageID string) string {
@@ -998,20 +1021,162 @@ func resolveChromaLanguageID(languageID string) string {
 	return resolvedLanguageID
 }
 
+var triliumClassToLangID = map[string]string{
+	"language-application-javascript-env-frontend": "javascript",
+	"language-application-javascript-env-backend":  "javascript",
+	"language-application-dart":                    "dart",
+	"language-application-edn":                     "clojure",
+	"language-application-json":                    "json",
+	"language-application-ld+json":                 "json",
+	"language-application-typescript":              "typescript",
+	"language-application-x-bat":                   "bat",
+	"language-application-x-cypher-query":          "cypher",
+	"language-application-x-powershell":            "powershell",
+	"language-application-xml-dtd":                 "xml",
+	"language-application-xquery":                  "xquery",
+	"language-message-http":                        "http",
+	"language-text-apl":                            "apl",
+	"language-text-coffeescript":                   "coffeescript",
+	"language-text-css":                            "css",
+	"language-text-html":                           "html",
+	"language-text-jinja2":                         "jinja",
+	"language-text-jsx":                            "jsx",
+	"language-text-turtle":                         "turtle",
+	"language-text-typescript-jsx":                 "tsx",
+	"language-text-vbscript":                       "vb",
+	"language-text-velocity":                       "velocity",
+	"language-text-vnd-mermaid":                    "mermaid",
+	"language-text-mermaid":                        "mermaid",
+	"language-text-x-abap":                         "abap",
+	"language-text-x-asm-mips":                     "mips",
+	"language-text-x-asterisk":                     "asterisk",
+	"language-text-x-brainfuck":                    "brainfuck",
+	"language-text-x-c++src":                       "cpp",
+	"language-text-x-cassandra":                    "sql",
+	"language-text-x-clojure":                      "clojure",
+	"language-text-x-clojurescript":                "clojure",
+	"language-text-x-cmake":                        "cmake",
+	"language-text-x-cobol":                        "cobol",
+	"language-text-x-common-lisp":                  "common-lisp",
+	"language-text-x-crystal":                      "crystal",
+	"language-text-x-csharp":                       "csharp",
+	"language-text-x-csrc":                         "c",
+	"language-text-x-cython":                       "python",
+	"language-text-x-d":                            "d",
+	"language-text-x-diff":                         "diff",
+	"language-text-x-dockerfile":                   "dockerfile",
+	"language-text-x-dylan":                        "dylan",
+	"language-text-x-ebnf":                         "ebnf",
+	"language-text-x-ecl":                          "ecl",
+	"language-text-x-eiffel":                       "eiffel",
+	"language-text-x-elixir":                       "elixir",
+	"language-text-x-elm":                          "elm",
+	"language-text-x-erlang":                       "erlang",
+	"language-text-x-esper":                        "sql",
+	"language-text-x-factor":                       "factor",
+	"language-text-x-fcl":                          "fcl",
+	"language-text-x-feature":                      "gherkin",
+	"language-text-x-forth":                        "forth",
+	"language-text-x-fortran":                      "fortran",
+	"language-text-x-fsharp":                       "fsharp",
+	"language-text-x-gas":                          "gas",
+	"language-text-x-gdscript":                     "gdscript",
+	"language-text-x-gfm":                          "markdown",
+	"language-text-x-go":                           "go",
+	"language-text-x-groovy":                       "groovy",
+	"language-text-x-gss":                          "gss",
+	"language-text-x-haskell":                      "haskell",
+	"language-text-x-haxe":                         "haxe",
+	"language-text-x-hcl":                          "hcl",
+	"language-text-x-hxml":                         "hxml",
+	"language-text-x-idl":                          "idl",
+	"language-text-x-java":                         "java",
+	"language-text-x-julia":                        "julia",
+	"language-text-x-kotlin":                       "kotlin",
+	"language-text-x-latex":                        "latex",
+	"language-text-x-less":                         "less",
+	"language-text-x-livescript":                   "livescript",
+	"language-text-x-lua":                          "lua",
+	"language-text-x-mariadb":                      "sql",
+	"language-text-x-markdown":                     "markdown",
+	"language-text-x-mathematica":                  "mathematica",
+	"language-text-x-modelica":                     "modelica",
+	"language-text-x-mscgen":                       "mscgen",
+	"language-text-x-msgenny":                      "msgenny",
+	"language-text-x-mssql":                        "sql",
+	"language-text-x-mumps":                        "mumps",
+	"language-text-x-mysql":                        "sql",
+	"language-text-x-nix":                          "nix",
+	"language-text-x-nginx-conf":                   "nginx",
+	"language-text-x-nsis":                         "nsis",
+	"language-text-x-objectivec":                   "objective-c",
+	"language-text-x-ocaml":                        "ocaml",
+	"language-text-x-octave":                       "octave",
+	"language-text-x-oz":                           "oz",
+	"language-text-x-pascal":                       "pascal",
+	"language-text-x-perl":                         "perl",
+	"language-text-x-pgsql":                        "sql",
+	"language-text-x-php":                          "php",
+	"language-text-x-pig":                          "pig",
+	"language-text-x-plsql":                        "sql",
+	"language-text-x-properties":                   "properties",
+	"language-text-x-protobuf":                     "protobuf",
+	"language-text-x-pug":                          "pug",
+	"language-text-x-puppet":                       "puppet",
+	"language-text-x-python":                       "python",
+	"language-text-x-q":                            "q",
+	"language-text-x-rpm-changes":                  "rpm",
+	"language-text-x-rpm-spec":                     "rpm",
+	"language-text-x-rsrc":                         "r",
+	"language-text-x-ruby":                         "ruby",
+	"language-text-x-rustsrc":                      "rust",
+	"language-text-x-sas":                          "sas",
+	"language-text-x-sass":                         "sass",
+	"language-text-x-scala":                        "scala",
+	"language-text-x-scheme":                       "scheme",
+	"language-text-x-scss":                         "scss",
+	"language-text-x-sh":                           "bash",
+	"language-text-x-sml":                          "sml",
+	"language-text-x-solr":                         "solr",
+	"language-text-x-spreadsheet":                  "spreadsheet",
+	"language-text-x-sql":                          "sql",
+	"language-text-x-sqlite;schema=trilium":        "sql",
+	"language-text-x-sqlite":                       "sql",
+	"language-text-x-squirrel":                     "squirrel",
+	"language-text-x-stex":                         "latex",
+	"language-text-x-stsrc":                        "smalltalk",
+	"language-text-x-styl":                         "stylus",
+	"language-text-x-swift":                        "swift",
+	"language-text-x-systemverilog":                "system-verilog",
+	"language-text-x-tcl":                          "tcl",
+	"language-text-x-textile":                      "textile",
+	"language-text-x-tiddlywiki":                   "tiddlywiki",
+	"language-text-x-toml":                         "toml",
+	"language-text-x-ttcn-asn":                     "ttcn",
+	"language-text-x-ttcn-cfg":                     "ttcn-cfg",
+	"language-text-x-ttcn":                         "ttcn",
+	"language-text-x-twig":                         "twig",
+	"language-text-x-vb":                           "vb",
+	"language-text-x-verilog":                      "verilog",
+	"language-text-x-vhdl":                         "vhdl",
+	"language-text-x-vue":                          "vue",
+	"language-text-x-webidl":                       "webidl",
+	"language-text-x-xu":                           "xu",
+	"language-text-x-yacas":                        "yacas",
+	"language-text-x-yaml":                         "yaml",
+	"language-text-x-z80":                          "z80",
+	"language-text-xml":                            "xml",
+	"language-text-x-rst":                          "rst",
+}
+
 func normalizeCodeLanguageClass(className string) (string, string, bool) {
 	if className == "" {
 		return "", "", false
 	}
 
-	aliasMap := map[string]string{
-		"language-application-javascript-env-frontend": "javascript",
-		"language-application-javascript-env-backend":  "javascript",
-		"language-text-x-sh":                           "bash",
-	}
-
 	for _, classToken := range strings.Fields(className) {
-		if languageID, ok := aliasMap[classToken]; ok {
-			return languageID, "alias", true
+		if languageID, ok := triliumClassToLangID[classToken]; ok {
+			return languageID, "class", true
 		}
 		if strings.HasPrefix(classToken, "language-") {
 			languageID := normalizeLanguageID(strings.TrimPrefix(classToken, "language-"))
