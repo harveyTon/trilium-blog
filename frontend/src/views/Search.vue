@@ -1,18 +1,18 @@
 <template>
   <section class="search-page">
     <header class="search-header">
-      <p class="search-label">站内搜索</p>
-      <h1 class="search-title">搜索结果</h1>
+      <p class="search-label">{{ t('search.title') }}</p>
+      <h1 class="search-title">{{ t('search.heading') }}</h1>
       <p class="search-description">
-        <span v-if="query">当前关键词：{{ query }}</span>
-        <span v-else>请输入关键词开始搜索文章内容。</span>
+        <span v-if="query">{{ t('search.currentKeyword') }}{{ query }}</span>
+        <span v-else>{{ t('search.placeholder') }}</span>
       </p>
     </header>
 
     <div class="search-state">
       <SearchEmptyState
         v-if="!hasQuery"
-        description="输入关键词后，可在这里查看完整搜索结果"
+        :description="t('search.previewHint')"
       />
       <template v-else>
         <el-alert v-if="error" :title="error" type="error" show-icon :closable="false" />
@@ -21,7 +21,7 @@
         </div>
         <div v-else class="search-result-shell">
           <SearchFilters />
-          <SearchEmptyState v-if="!items.length" description="没有找到相关内容" />
+          <SearchEmptyState v-if="!items.length" :description="t('search.noResults')" />
           <SearchResultList v-else :items="items" :query="query" :total="total" />
         </div>
       </template>
@@ -35,6 +35,7 @@ import SearchEmptyState from "../components/search/SearchEmptyState.vue";
 import SearchFilters from "../components/search/SearchFilters.vue";
 import SearchResultList from "../components/search/SearchResultList.vue";
 import { useSearch } from "../composables/useSearch";
+import { t } from "../i18n";
 
 export default {
   name: "SearchPage",
@@ -47,6 +48,7 @@ export default {
   setup() {
     const { query, hasQuery, loading, error, items, total } = useSearch();
     return {
+      t,
       query,
       hasQuery,
       loading,

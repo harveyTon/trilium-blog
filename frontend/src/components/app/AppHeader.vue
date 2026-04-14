@@ -4,14 +4,14 @@
       <button
         class="search-toggle"
         type="button"
-        aria-label="打开搜索"
+        :aria-label="t('header.searchAria')"
         @click="mobileSearchOpen = true"
       >
         <el-icon><Search /></el-icon>
       </button>
 
       <router-link :to="{ name: 'HomePage' }" class="blog-brand" @click="handleBrandClick">
-        <img :src="logoSrc" :alt="site.title + ' - 返回首页'" class="blog-logo" />
+        <img :src="logoSrc" :alt="site.title + t('header.logoAlt')" class="blog-logo" />
         <span class="blog-brand-copy">
           <span class="blog-title">{{ site.title }}</span>
           <span v-if="site.subtitle" class="blog-subtitle">{{ site.subtitle }}</span>
@@ -24,7 +24,7 @@
 
       <button
         class="theme-toggle"
-        :aria-label="isDark ? '切换到亮色模式' : '切换到暗色模式'"
+        :aria-label="isDark ? t('header.lightModeAria') : t('header.darkModeAria')"
         @click="$emit('toggle-theme')"
       >
         <el-icon>
@@ -37,11 +37,11 @@
       <div v-if="mobileSearchOpen" class="mobile-search-modal" @click.self="mobileSearchOpen = false">
         <div class="mobile-search-panel">
           <div class="mobile-search-header">
-            <p class="mobile-search-title">搜索文章</p>
+            <p class="mobile-search-title">{{ t('header.searchTitle') }}</p>
             <button
               class="mobile-search-close"
               type="button"
-              aria-label="关闭搜索"
+              :aria-label="t('header.closeSearchAria')"
               @click="mobileSearchOpen = false"
             >
               ×
@@ -61,6 +61,7 @@ import { ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import logoSrc from "../../assets/logo.png";
 import GlobalSearchBox from "./GlobalSearchBox.vue";
+import { t } from "../../i18n";
 
 export default {
   name: "AppHeader",
@@ -108,6 +109,7 @@ export default {
     );
 
     return {
+      t,
       logoSrc,
       handleBrandClick,
       mobileSearchOpen,

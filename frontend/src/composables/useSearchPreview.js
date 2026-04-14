@@ -1,6 +1,7 @@
 import { ref } from "vue";
 import { fetchSearchPreview } from "../api/search";
 import { useSearchStore } from "../store/search";
+import { t } from "../i18n";
 
 export function useSearchPreview() {
   const searchStore = useSearchStore();
@@ -41,7 +42,7 @@ export function useSearchPreview() {
       } catch (err) {
         if (currentToken !== requestToken) return;
         console.error("Fetch Search Preview Error:", err);
-        searchStore.setError("搜索预览加载失败");
+        searchStore.setError(t('search.previewError'));
         searchStore.setPreviewItems([]);
       } finally {
         if (currentToken === requestToken) {

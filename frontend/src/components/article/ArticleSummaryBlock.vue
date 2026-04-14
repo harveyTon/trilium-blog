@@ -16,10 +16,10 @@
         <p v-if="summary?.status === 'ready' && summary?.text" class="article-summary-text">{{ summary.text }}</p>
         <div v-else-if="showPending" class="article-summary-pending">
           <span class="article-summary-spinner" aria-hidden="true"></span>
-          <p class="article-summary-hint">正在生成更自然的 AI 摘要，生成完成后会自动更新。</p>
+          <p class="article-summary-hint">{{ t('summary.aiPending') }}</p>
         </div>
         <p v-else-if="summary?.status === 'failed'" class="article-summary-hint">
-          AI 摘要暂时生成失败，稍后会自动重试。
+          {{ t('summary.aiFailed') }}
         </p>
       </div>
     </transition>
@@ -28,6 +28,7 @@
 
 <script>
 import { computed, ref, watch } from "vue";
+import { t } from "../../i18n";
 
 export default {
   name: "ArticleSummaryBlock",
@@ -47,12 +48,12 @@ export default {
     const showPending = computed(() => props.enabled && (!props.summary || isLoading.value));
     const subtitle = computed(() => {
       if (props.summary?.status === "ready" && props.summary?.text) {
-        return "已生成，可快速浏览文章核心内容";
+        return t('summary.readyHint');
       }
       if (showPending.value) {
-        return "正在异步生成中";
+        return t('summary.generatingHint');
       }
-      return "暂时不可用";
+      return t('summary.unavailableHint');
     });
     const shouldRender = computed(
       () =>
@@ -73,6 +74,7 @@ export default {
     );
 
     return {
+      t,
       collapsed,
       isLoading,
       showPending,

@@ -39,7 +39,7 @@
             :class="['reading-topbar', { 'is-hidden': !readingTopbarVisible }]"
           >
             <div class="reading-topbar-inner">
-              <button type="button" class="reading-topbar-link" @click="goHome">首页</button>
+              <button type="button" class="reading-topbar-link" @click="goHome">{{ t('article.home') }}</button>
               <div class="reading-topbar-actions">
                 <button
                   v-if="post.toc && post.toc.length >= 3"
@@ -47,8 +47,8 @@
                   :class="['reading-topbar-link', 'reading-topbar-state', { 'is-active': !readingTocCollapsed }]"
                   @click="toggleReadingTocCollapsed(!readingTocCollapsed)"
                 >
-                  <span>目录</span>
-                  <span class="reading-topbar-state-text">{{ readingTocCollapsed ? "已收起" : "已展开" }}</span>
+                  <span>{{ t('article.toc') }}</span>
+                  <span class="reading-topbar-state-text">{{ readingTocCollapsed ? t('article.tocCollapsed') : t('article.tocExpanded') }}</span>
                 </button>
                 <div ref="readingSettingsRef" class="reading-settings">
                   <button
@@ -60,92 +60,92 @@
                   </button>
                   <div v-if="readingSettingsOpen" class="reading-settings-popover">
                     <div class="reading-settings-group">
-                      <div class="reading-settings-label">宽度</div>
+                      <div class="reading-settings-label">{{ t('article.width') }}</div>
                       <div class="reading-settings-options">
                         <button
                           type="button"
                           :class="['reading-settings-option', { 'is-active': readingWidth === 'comfortable' }]"
                           @click="setReadingWidth('comfortable')"
                         >
-                          舒展
+                          {{ t('article.comfortable') }}
                         </button>
                         <button
                           type="button"
                           :class="['reading-settings-option', { 'is-active': readingWidth === 'compact' }]"
                           @click="setReadingWidth('compact')"
                         >
-                          紧凑
+                          {{ t('article.compact') }}
                         </button>
                       </div>
                     </div>
                     <div class="reading-settings-group">
-                      <div class="reading-settings-label">密度</div>
+                      <div class="reading-settings-label">{{ t('article.density') }}</div>
                       <div class="reading-settings-options">
                         <button
                           type="button"
                           :class="['reading-settings-option', { 'is-active': readingDensity === 'relaxed' }]"
                           @click="setReadingDensity('relaxed')"
                         >
-                          舒展
+                          {{ t('article.comfortable') }}
                         </button>
                         <button
                           type="button"
                           :class="['reading-settings-option', { 'is-active': readingDensity === 'comfortable' }]"
                           @click="setReadingDensity('comfortable')"
                         >
-                          紧凑
+                          {{ t('article.compact') }}
                         </button>
                       </div>
                     </div>
                     <div class="reading-settings-group">
-                      <div class="reading-settings-label">字体大小</div>
+                      <div class="reading-settings-label">{{ t('article.fontSize') }}</div>
                       <div class="reading-settings-options is-triple">
                         <button
                           type="button"
                           :class="['reading-settings-option', { 'is-active': readingFontSize === 'compact' }]"
                           @click="setReadingFontSize('compact')"
                         >
-                          小
+                          {{ t('article.small') }}
                         </button>
                         <button
                           type="button"
                           :class="['reading-settings-option', { 'is-active': readingFontSize === 'comfortable' }]"
                           @click="setReadingFontSize('comfortable')"
                         >
-                          中
+                          {{ t('article.medium') }}
                         </button>
                         <button
                           type="button"
                           :class="['reading-settings-option', { 'is-active': readingFontSize === 'large' }]"
                           @click="setReadingFontSize('large')"
                         >
-                          大
+                          {{ t('article.large') }}
                         </button>
                       </div>
                     </div>
                     <div class="reading-settings-group">
-                      <div class="reading-settings-label">阅读主题</div>
+                      <div class="reading-settings-label">{{ t('article.readingTheme') }}</div>
                       <div class="reading-settings-options">
                         <button
                           type="button"
                           :class="['reading-settings-option', { 'is-active': !isDarkTheme }]"
                           @click="setThemeMode(false)"
                         >
-                          亮色
+                          {{ t('article.lightTheme') }}
                         </button>
                         <button
                           type="button"
                           :class="['reading-settings-option', { 'is-active': isDarkTheme }]"
                           @click="setThemeMode(true)"
                         >
-                          暗色
+                          {{ t('article.darkTheme') }}
                         </button>
                       </div>
                     </div>
                   </div>
                 </div>
                 <button type="button" class="reading-topbar-link is-exit" @click="exitReadingMode">
-                  退出阅读
+                  {{ t('article.exitReading') }}
                 </button>
               </div>
             </div>
@@ -163,7 +163,7 @@
             <ArticleHeader :title="post.title" :formatted-date="formatDate(post.dateModified)">
               <template v-if="!isReadingMode" #actions>
                 <button type="button" class="reading-mode-trigger" @click="enterReadingMode">
-                  阅读模式
+                  {{ t('article.enterReading') }}
                 </button>
               </template>
             </ArticleHeader>
@@ -181,10 +181,10 @@
           </main>
         </div>
 
-        <el-empty v-else-if="!loadError" description="文章未找到"></el-empty>
+        <el-empty v-else-if="!loadError" :description="t('article.notFound')"></el-empty>
         <div v-else class="load-error">
-          <p>加载失败，请检查网络后重试</p>
-          <el-button type="primary" @click="loadPost">重试</el-button>
+          <p>{{ t('article.fetchError') }}</p>
+          <el-button type="primary" @click="loadPost">{{ t('article.retry') }}</el-button>
         </div>
       </template>
     </el-skeleton>
@@ -208,6 +208,7 @@ import SourceLinkBlock from "../components/article/SourceLinkBlock.vue";
 import { useArticleEnhancements } from "../composables/useArticleEnhancements";
 import { useArticleReadingMode } from "../composables/useArticleReadingMode";
 import { useReadingProgress } from "../composables/useReadingProgress";
+import { t } from "../i18n";
 import { useSiteStore } from "../store";
 
 export default {
@@ -580,6 +581,7 @@ export default {
     }, { immediate: true });
 
     return {
+      t,
       site,
       post,
       summaryState,

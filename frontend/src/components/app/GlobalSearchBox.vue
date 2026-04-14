@@ -5,8 +5,8 @@
       v-model="query"
       class="global-search-input"
       type="search"
-      placeholder="搜索文章标题与内容"
-      aria-label="搜索文章标题与内容"
+      :placeholder="t('search.searchPlaceholder')"
+      :aria-label="t('search.searchPlaceholder')"
       @input="handleInput"
       @keydown="handleKeydown"
     />
@@ -29,6 +29,7 @@ import { computed, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import SearchPreviewPanel from "./SearchPreviewPanel.vue";
 import { useSearchPreview } from "../../composables/useSearchPreview";
+import { t } from "../../i18n";
 
 export default {
   name: "GlobalSearchBox",
@@ -146,6 +147,7 @@ export default {
     };
 
     return {
+      t,
       inputRef,
       query,
       activeIndex,

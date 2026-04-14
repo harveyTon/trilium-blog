@@ -4,10 +4,10 @@
       <div class="footer-text">
         <p>
           © {{ new Date().getFullYear() }} {{ site.title }}.
-          保留所有权利。
+          {{ t('footer.copyright') }}
         </p>
         <p>
-          由
+          {{ t('footer.poweredByPrefix') }}
           <a href="https://github.com/harveyTon/trilium-blog" target="_blank"
             >Trilium Blog</a
           >
@@ -15,7 +15,7 @@
           <a href="https://github.com/TriliumNext/Trilium" target="_blank"
             >Trilium</a
           >
-          强力驱动
+          {{ t('footer.poweredBySuffix') }}
         </p>
       </div>
     </div>
@@ -24,6 +24,7 @@
 
 <script>
 import { ElFooter } from "element-plus";
+import { t } from "../../i18n";
 
 export default {
   name: "AppFooter",

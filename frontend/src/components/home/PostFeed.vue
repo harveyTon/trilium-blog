@@ -1,5 +1,5 @@
 <template>
-  <nav class="post-list" aria-label="文章列表">
+  <nav class="post-list" :aria-label="t('postFeed.ariaLabel')">
     <PostCard
       v-for="post in items"
       :key="post.noteId"
@@ -14,6 +14,7 @@
 
 <script>
 import PostCard from "./PostCard.vue";
+import { t } from "../../i18n";
 
 export default {
   name: "PostFeed",

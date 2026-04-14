@@ -1,8 +1,8 @@
 <template>
   <div class="search-preview-panel">
-    <div v-if="loading" class="search-preview-state">搜索中...</div>
+    <div v-if="loading" class="search-preview-state">{{ t('search.searching') }}</div>
     <div v-else-if="error" class="search-preview-state">{{ error }}</div>
-    <div v-else-if="!items.length" class="search-preview-state">没有找到相关内容</div>
+    <div v-else-if="!items.length" class="search-preview-state">{{ t('search.noResults') }}</div>
     <ul v-else class="search-preview-list">
       <li v-for="(item, index) in items" :key="item.noteId">
         <button
@@ -24,12 +24,14 @@
       class="search-preview-more"
       @mousedown.prevent="$emit('submit-search')"
     >
-      查看全部结果
+      {{ t('search.viewAll') }}
     </button>
   </div>
 </template>
 
 <script>
+import { t } from "../../i18n";
+
 export default {
   name: "SearchPreviewPanel",
   props: {

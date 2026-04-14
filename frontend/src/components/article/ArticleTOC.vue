@@ -9,9 +9,9 @@
     <aside class="article-toc">
       <div :class="['toc-panel', { 'is-reading-drawer': readingMode }]">
         <div class="toc-header">
-          <div class="toc-title">目录</div>
+          <div class="toc-title">{{ t('article.toc') }}</div>
           <button type="button" class="toc-toggle" @click="$emit('toggle-collapse')">
-            {{ readingMode ? "关闭" : collapsed ? "展开" : "收起" }}
+            {{ readingMode ? t('article.tocClose') : collapsed ? t('article.tocExpand') : t('article.tocCollapse') }}
           </button>
         </div>
         <div v-if="readingMode || !collapsed" class="toc-links">
@@ -31,6 +31,8 @@
 </template>
 
 <script>
+import { t } from "../../i18n";
+
 export default {
   name: "ArticleTOC",
   props: {

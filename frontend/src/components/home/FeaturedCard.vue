@@ -2,7 +2,7 @@
   <article class="featured-card">
     <router-link :to="{ name: 'Article', params: { noteId: post.noteId } }" class="featured-link">
       <div class="featured-meta">
-        <p class="featured-kicker">精选</p>
+        <p class="featured-kicker">{{ t('featured.badge') }}</p>
         <p class="featured-date">{{ formattedDate }}</p>
       </div>
       <div class="featured-title-block">
@@ -19,6 +19,7 @@
 import { computed, toRef } from "vue";
 import SummaryPreview from "./SummaryPreview.vue";
 import { useSummaryStatus } from "../../composables/useSummaryStatus";
+import { t, locale } from "../../i18n";
 
 export default {
   name: "FeaturedCard",
@@ -41,7 +42,7 @@ export default {
         return props.post.dateModified;
       }
 
-      return new Intl.DateTimeFormat("zh-CN", {
+      return new Intl.DateTimeFormat(locale(), {
         year: "numeric",
         month: "short",
         day: "numeric",
@@ -49,6 +50,8 @@ export default {
     });
 
     return {
+      t,
+      locale,
       formattedDate,
       resolvedSummary,
       summaryType,

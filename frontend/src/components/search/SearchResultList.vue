@@ -1,6 +1,6 @@
 <template>
   <section class="search-result-list-shell">
-    <p class="search-result-count">共找到 {{ total }} 条结果</p>
+    <p class="search-result-count">{{ t('search.resultCount', { total }) }}</p>
     <div class="search-result-list">
       <SearchResultCard
         v-for="item in items"
@@ -14,6 +14,7 @@
 
 <script>
 import SearchResultCard from "./SearchResultCard.vue";
+import { t } from "../../i18n";
 
 export default {
   name: "SearchResultList",

@@ -1,11 +1,13 @@
 <template>
   <div class="search-filters">
-    <span class="search-filter-label">搜索范围</span>
-    <button type="button" class="search-filter-chip is-active">全部</button>
+    <span class="search-filter-label">{{ t('search.scope') }}</span>
+    <button type="button" class="search-filter-chip is-active">{{ t('search.scopeAll') }}</button>
   </div>
 </template>
 
 <script>
+import { t } from "../../i18n";
+
 export default {
   name: "SearchFilters",
 };

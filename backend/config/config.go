@@ -34,6 +34,7 @@ type AppConfig struct {
 	BlogTitle       string
 	BlogSubtitle    string
 	Domain          string
+	Locale          string
 	ImageProxy      ImageProxyConfig
 	AISummary       AISummaryConfig
 }
@@ -48,6 +49,7 @@ func LoadConfig() {
 		BlogTitle:       getEnv("BLOG_TITLE", ""),
 		BlogSubtitle:    getEnv("BLOG_SUBTITLE", ""),
 		Domain:          getEnv("DOMAIN", ""),
+		Locale:          normalizeLocale(getEnv("LOCALE", "zh-CN")),
 		ImageProxy: ImageProxyConfig{
 			Enabled: getEnvBool("IMAGE_PROXY_ENABLED", false),
 			BaseURL: getEnv("IMAGE_PROXY_BASE_URL", ""),
@@ -121,6 +123,16 @@ func normalizeAISummaryProvider(provider string) string {
 		return "openai-compatible"
 	default:
 		return provider
+	}
+}
+
+func normalizeLocale(locale string) string {
+	locale = strings.ToLower(strings.TrimSpace(locale))
+	switch locale {
+	case "en", "en-us":
+		return "en"
+	default:
+		return "zh-CN"
 	}
 }
 

@@ -80,6 +80,7 @@ npm run dev
 | `DOMAIN` | 否 | — | 博客域名，用于 sitemap、页面链接与内部资源判断 |
 | `ARTICLES_PER_PAGE` | 否 | `9` | 每页文章数 |
 | `PORT` | 否 | `8080` | 服务端口 |
+| `LOCALE` | 否 | `zh-CN` | 博客语言，支持 `zh-CN`（中文）和 `en`（英文） |
 | `IMAGE_PROXY_ENABLED` | 否 | `false` | 启用外部图片代理 |
 | `IMAGE_PROXY_BASE_URL` | 否 | — | 外部图片代理 URL（留空则使用内置 `/api/imageproxy`） |
 | `AI_SUMMARY_ENABLED` | 否 | `false` | 开启摘要子系统 |

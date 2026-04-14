@@ -6,8 +6,8 @@
 
     <section class="home-feed-section">
       <div class="home-section-header">
-        <p class="home-section-kicker">按更新时间浏览</p>
-        <h1 class="home-section-title">最新文章</h1>
+        <p class="home-section-kicker">{{ t('home.sectionKicker') }}</p>
+        <h1 class="home-section-title">{{ t('home.sectionTitle') }}</h1>
       </div>
 
       <div v-if="loading" class="post-list" aria-busy="true">
@@ -24,10 +24,10 @@
 
       <div v-else-if="fetchError" class="fetch-error">
         <p>{{ fetchError }}</p>
-        <el-button type="primary" @click="loadPosts">重试</el-button>
+        <el-button type="primary" @click="loadPosts">{{ t('home.retry') }}</el-button>
       </div>
 
-      <el-empty v-else-if="!posts.length" description="暂无已发布文章" />
+      <el-empty v-else-if="!posts.length" :description="t('home.noPosts')" />
       <PostFeed
         v-else
         :items="posts"
@@ -60,6 +60,7 @@ import { useRoute, useRouter } from "vue-router";
 import FeaturedSection from "../components/home/FeaturedSection.vue";
 import PostFeed from "../components/home/PostFeed.vue";
 import { fetchFeaturedPosts, fetchPosts } from "../api/blog";
+import { t, locale } from "../i18n";
 import { useSiteStore } from "../store";
 
 const parsePageQuery = (value) => {
@@ -123,7 +124,7 @@ export default {
           totalPages: postResponse.totalPages,
         };
       } catch {
-        fetchError.value = "加载失败，请检查网络后重试";
+        fetchError.value = t('home.fetchError');
         posts.value = [];
       } finally {
         loading.value = false;
@@ -144,16 +145,16 @@ export default {
 
     const getMonth = (dateString) => {
       const d = new Date(dateString);
-      return `${d.getFullYear()}年-${pad(d.getMonth() + 1)}月`;
+      return `${d.getFullYear()}${t('date.yearSuffix')}-${pad(d.getMonth() + 1)}${t('date.monthSuffix')}`;
     };
 
     const formatFullDate = (dateString) => {
       const d = new Date(dateString);
       const h = d.getHours();
       const m = pad(d.getMinutes());
-      const period = h < 12 ? "上午" : "下午";
+      const period = h < 12 ? t('date.am') : t('date.pm');
       const displayHour = h > 12 ? h - 12 : h === 0 ? 12 : h;
-      return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${period}${displayHour}:${m}`;
+      return `${d.getFullYear()}${t('date.yearSuffix')}${d.getMonth() + 1}${t('date.monthSuffix')}${d.getDate()}${t('date.daySuffix')} ${period}${displayHour}:${m}`;
     };
 
     const sanitizeSummary = (text) => {
@@ -173,7 +174,7 @@ export default {
       if (!baseTitle) {
         return "";
       }
-      return currentPage.value > 1 ? `${baseTitle} - 第 ${currentPage.value} 页` : baseTitle;
+      return currentPage.value > 1 ? `${baseTitle} - ${t('home.pageSuffix', { page: currentPage.value })}` : baseTitle;
     };
 
     const syncTitle = () => {
@@ -213,6 +214,8 @@ export default {
     );
 
     return {
+      t,
+      locale,
       posts,
       featuredPosts,
       loading,

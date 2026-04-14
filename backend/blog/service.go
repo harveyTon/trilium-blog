@@ -30,6 +30,7 @@ type Service struct {
 	blogTitle         string
 	blogSubtitle      string
 	domain            string
+	locale            string
 	pageSize          int
 	imageProxyEnabled bool
 	imageProxyBaseUrl string
@@ -55,6 +56,10 @@ func WithBlogSubtitle(subtitle string) ServiceOption {
 
 func WithDomain(domain string) ServiceOption {
 	return func(s *Service) { s.domain = domain }
+}
+
+func WithLocale(locale string) ServiceOption {
+	return func(s *Service) { s.locale = locale }
 }
 
 func WithPageSize(size int) ServiceOption {
@@ -192,6 +197,7 @@ func (s *Service) GetSite() Site {
 		Title:    s.blogTitle,
 		Subtitle: s.blogSubtitle,
 		Domain:   s.domain,
+		Locale:   s.locale,
 		ImageProxy: ImageProxyConfig{
 			Enabled: s.imageProxyEnabled,
 			BaseURL: s.imageProxyBaseUrl,

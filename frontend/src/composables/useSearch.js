@@ -1,6 +1,7 @@
 import { computed, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import { fetchSearchResults } from "../api/search";
+import { t } from "../i18n";
 
 export function useSearch() {
   const route = useRoute();
@@ -27,7 +28,7 @@ export function useSearch() {
       result.value = await fetchSearchResults(query.value);
     } catch (err) {
       console.error("Fetch Search Results Error:", err);
-      error.value = "搜索失败，请稍后重试";
+      error.value = t('search.fetchError');
       result.value = null;
     } finally {
       loading.value = false;

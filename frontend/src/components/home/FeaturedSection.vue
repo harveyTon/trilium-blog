@@ -1,8 +1,8 @@
 <template>
-  <section v-if="items.length" class="featured-section" aria-label="精选文章">
+  <section v-if="items.length" class="featured-section" :aria-label="t('featured.sectionLabel')">
     <div class="featured-header">
-      <p class="featured-label">优先阅读</p>
-      <h2 class="featured-heading">精选文章</h2>
+      <p class="featured-label">{{ t('featured.kicker') }}</p>
+      <h2 class="featured-heading">{{ t('featured.heading') }}</h2>
     </div>
 
     <div class="featured-carousel">
@@ -10,7 +10,7 @@
         v-if="showDesktopControls"
         class="featured-nav featured-nav--prev"
         type="button"
-        aria-label="查看上一组精选文章"
+        :aria-label="t('featured.ariaPrev')"
         @click="goPrev"
       >
         ‹
@@ -37,7 +37,7 @@
         v-if="showDesktopControls"
         class="featured-nav featured-nav--next"
         type="button"
-        aria-label="查看下一组精选文章"
+        :aria-label="t('featured.ariaNext')"
         @click="goNext"
       >
         ›
@@ -49,7 +49,7 @@
         v-for="page in totalPages"
         :key="page"
         type="button"
-        :aria-label="`切换到第 ${page} 组精选文章`"
+        :aria-label="t('featured.ariaDot', { page })"
         :class="['featured-dot', { 'is-active': page - 1 === currentPage }]"
         @click="goToPage(page - 1)"
       ></button>
@@ -60,6 +60,7 @@
 <script>
 import { computed, ref, watch } from "vue";
 import FeaturedCard from "./FeaturedCard.vue";
+import { t } from "../../i18n";
 
 export default {
   name: "FeaturedSection",
@@ -124,6 +125,7 @@ export default {
     watch(() => props.items.length, clampCurrentPage, { immediate: true });
 
     return {
+      t,
       currentPage,
       totalPages,
       showControls,

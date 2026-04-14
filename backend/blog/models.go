@@ -71,6 +71,7 @@ type Site struct {
 	Title      string           `json:"title"`
 	Subtitle   string           `json:"subtitle"`
 	Domain     string           `json:"domain"`
+	Locale     string           `json:"locale"`
 	ImageProxy ImageProxyConfig `json:"imageProxy"`
 }
 
