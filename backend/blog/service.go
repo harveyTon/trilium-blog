@@ -948,13 +948,9 @@ func (s *Service) processContent(html string) (string, []CodeBlock) {
 
 func detectCodeBlockLanguage(codeText, className string) (string, string) {
 	fallbackLanguageID, fallbackDetectedBy, hasFallback := normalizeCodeLanguageClass(className)
-	if hasFallback {
-		if resolvedLanguageID := resolveChromaLanguageID(fallbackLanguageID); resolvedLanguageID != "" {
-			return resolvedLanguageID, fallbackDetectedBy
-		}
-	}
+	trimmed := strings.TrimSpace(stripControlRunes(codeText))
 
-	if strings.TrimSpace(stripControlRunes(codeText)) == "" {
+	if trimmed == "" {
 		if hasFallback {
 			return fallbackLanguageID, fallbackDetectedBy
 		}
@@ -962,25 +958,30 @@ func detectCodeBlockLanguage(codeText, className string) (string, string) {
 	}
 
 	lexer := lexers.Analyse(codeText)
-	if lexer == nil {
-		if hasFallback {
-			return fallbackLanguageID, fallbackDetectedBy
+	if lexer != nil {
+		languageID := normalizeLanguageID(lexer.Config().Name)
+		if languageID == "" && len(lexer.Config().Aliases) > 0 {
+			languageID = normalizeLanguageID(lexer.Config().Aliases[0])
 		}
-		return "plaintext", "fallback"
+		if languageID != "" {
+			if !hasFallback || len(trimmed) >= 200 || languageID == fallbackLanguageID {
+				return languageID, "analyse"
+			}
+			resolvedFallback := resolveChromaLanguageID(fallbackLanguageID)
+			if languageID == resolvedFallback {
+				return languageID, "analyse"
+			}
+		}
 	}
 
-	languageID := normalizeLanguageID(lexer.Config().Name)
-	if languageID == "" && len(lexer.Config().Aliases) > 0 {
-		languageID = normalizeLanguageID(lexer.Config().Aliases[0])
-	}
-	if languageID == "" {
-		if hasFallback {
-			return fallbackLanguageID, fallbackDetectedBy
+	if hasFallback {
+		if resolvedLanguageID := resolveChromaLanguageID(fallbackLanguageID); resolvedLanguageID != "" {
+			return resolvedLanguageID, fallbackDetectedBy
 		}
-		return "plaintext", "fallback"
+		return fallbackLanguageID, fallbackDetectedBy
 	}
 
-	return languageID, "analyse"
+	return "plaintext", "fallback"
 }
 
 func resolveChromaLanguageID(languageID string) string {
