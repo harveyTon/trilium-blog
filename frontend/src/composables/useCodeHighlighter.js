@@ -41,7 +41,23 @@ async function getHighlighter() {
   return highlighterPromise;
 }
 
-export async function highlightCodeBlock({ code, language, dark }) {
+export async function preloadLanguages(languageIds) {
+  const ids = [...new Set(languageIds.map(normalizeLanguage))].filter(
+    (id) => id !== "plaintext" && !loadedLanguages.has(id) && id in bundledLanguages
+  );
+  if (ids.length === 0) return;
+  const highlighter = await getHighlighter();
+  await Promise.all(
+    ids.map(async (id) => {
+      if (!loadedLanguages.has(id)) {
+        await highlighter.loadLanguage(id);
+        loadedLanguages.add(id);
+      }
+    })
+  );
+}
+
+export async function highlightCodeBlock({ code, language }) {
   const rawCode = typeof code === "string" ? code : "";
   const resolvedLanguage = normalizeLanguage(language);
 
@@ -53,7 +69,11 @@ export async function highlightCodeBlock({ code, language, dark }) {
     }
     const html = highlighter.codeToHtml(rawCode, {
       lang: resolvedLanguage,
-      theme: dark ? THEMES.dark : THEMES.light,
+      themes: {
+        light: THEMES.light,
+        dark: THEMES.dark,
+      },
+      defaultColor: false,
     });
 
     return {

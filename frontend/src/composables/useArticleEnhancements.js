@@ -1,6 +1,7 @@
 import { Fancybox } from "@fancyapps/ui";
 import { createApp } from "vue";
 import ArticleCodeBlock from "../components/article/ArticleCodeBlock.vue";
+import { preloadLanguages } from "./useCodeHighlighter";
 
 function friendlyLabelFromId(languageId) {
   switch (languageId) {
@@ -90,15 +91,22 @@ export function useArticleEnhancements() {
     }
   };
 
-  const enhanceCodeBlocks = ({ root, codeBlocks = [] }) => {
+  const enhanceCodeBlocks = async ({ root, codeBlocks = [] }) => {
     cleanupCodeBlocks();
 
     const preElements = root.querySelectorAll("pre");
+    const validBlocks = [];
     preElements.forEach((preElement, index) => {
       const codeElement = preElement.querySelector("code");
       if (!codeElement) return;
-
       const meta = codeBlocks[index] || fallbackCodeBlockMeta(preElement, index);
+      validBlocks.push({ preElement, codeElement, meta });
+    });
+
+    const languageIds = validBlocks.map((b) => normalizeLanguageId(b.meta.languageId));
+    await preloadLanguages(languageIds);
+
+    validBlocks.forEach(({ preElement, codeElement, meta }) => {
       const mountPoint = document.createElement("div");
       mountPoint.className = "article-code-block-host";
 
@@ -119,9 +127,9 @@ export function useArticleEnhancements() {
     cleanupCodeBlocks();
   };
 
-  const enhanceArticleContent = ({ root, codeBlocks = [] }) => {
+  const enhanceArticleContent = async ({ root, codeBlocks = [] }) => {
     if (!root) return;
-    enhanceCodeBlocks({ root, codeBlocks });
+    await enhanceCodeBlocks({ root, codeBlocks });
     setupGallery(root);
     enhanceImageGroups(root);
   };

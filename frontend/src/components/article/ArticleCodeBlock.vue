@@ -1,5 +1,6 @@
 <template>
   <div
+    ref="hostEl"
     class="article-code-block"
     :class="{
       'is-dark': isDark,
@@ -53,9 +54,11 @@ const copyLabel = ref("Copy");
 const isDark = ref(false);
 const isScrollable = ref(false);
 const scroller = ref(null);
+const hostEl = ref(null);
 let resetCopyTimer = null;
-let themeObserver = null;
 let resizeObserver = null;
+let visibilityObserver = null;
+let hasRendered = false;
 
 const showDesktopLineNumbers = computed(() => props.showLineNumbers);
 
@@ -67,7 +70,6 @@ async function renderCode() {
   const result = await highlightCodeBlock({
     code: props.code,
     language: props.languageId,
-    dark: isDark.value,
   });
   renderedHtml.value = result.html;
   await nextTick();
@@ -94,21 +96,40 @@ async function copyCode() {
   }, 1400);
 }
 
-onMounted(async () => {
-  syncTheme();
-  await renderCode();
+function ensureRendered() {
+  if (hasRendered) return;
+  hasRendered = true;
+  renderCode();
+}
 
-  themeObserver = new MutationObserver(async () => {
-    const previous = isDark.value;
+onMounted(() => {
+  syncTheme();
+
+  const themeObserver = new MutationObserver(() => {
     syncTheme();
-    if (previous !== isDark.value) {
-      await renderCode();
-    }
   });
   themeObserver.observe(document.documentElement, {
     attributes: true,
     attributeFilter: ["class"],
   });
+
+  onBeforeUnmount(() => {
+    themeObserver.disconnect();
+  });
+
+  visibilityObserver = new IntersectionObserver(
+    ([entry]) => {
+      if (entry.isIntersecting) {
+        ensureRendered();
+        visibilityObserver?.disconnect();
+        visibilityObserver = null;
+      }
+    },
+    { rootMargin: "200px" }
+  );
+  if (hostEl.value) {
+    visibilityObserver.observe(hostEl.value);
+  }
 
   resizeObserver = new ResizeObserver(() => {
     updateScrollState();
@@ -121,13 +142,15 @@ onMounted(async () => {
 watch(
   () => [props.code, props.languageId],
   async () => {
-    await renderCode();
+    if (hasRendered) {
+      await renderCode();
+    }
   }
 );
 
 onBeforeUnmount(() => {
   window.clearTimeout(resetCopyTimer);
-  themeObserver?.disconnect();
+  visibilityObserver?.disconnect();
   resizeObserver?.disconnect();
 });
 </script>
@@ -251,6 +274,16 @@ onBeforeUnmount(() => {
   font-family: var(--mono) !important;
   font-size: var(--code-font-size) !important;
   line-height: var(--code-line-height) !important;
+}
+
+.code-block-rendered :deep(.shiki),
+.code-block-rendered :deep(.shiki span) {
+  color: var(--shiki-light);
+}
+
+.article-code-block.is-dark .code-block-rendered :deep(.shiki),
+.article-code-block.is-dark .code-block-rendered :deep(.shiki span) {
+  color: var(--shiki-dark);
 }
 
 .code-block-rendered :deep(code) {

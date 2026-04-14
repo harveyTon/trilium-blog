@@ -197,6 +197,7 @@ import "@fancyapps/ui/dist/fancybox/fancybox.css";
 import { storeToRefs } from "pinia";
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useDark } from "@vueuse/core";
 import { fetchPost } from "../api/blog";
 import { fetchPostSummary, normalizeSummaryPayload } from "../api/summary";
 import ReadingProgressBar from "../components/app/ReadingProgressBar.vue";
@@ -272,23 +273,15 @@ export default {
       }
     };
 
-    const isDarkMode = () =>
-      document.documentElement.classList.contains("dark");
-    const isDarkTheme = computed(() => isDarkMode());
+    const isDark = useDark();
+    const isDarkTheme = computed(() => isDark.value);
 
     const toggleTheme = () => {
-      const nextDarkMode = !isDarkMode();
-      window.dispatchEvent(
-        new CustomEvent("trilium-blog:set-theme", {
-          detail: { dark: nextDarkMode },
-        })
-      );
+      isDark.value = !isDark.value;
     };
 
     const setThemeMode = (dark) => {
-      if (dark !== isDarkMode()) {
-        toggleTheme();
-      }
+      isDark.value = dark;
     };
 
     const formatDate = (dateString) => {
@@ -327,7 +320,7 @@ export default {
       await nextTick();
       const root = articleContentRef.value?.getRootElement?.();
       if (!root || !post.value) return;
-      enhanceArticleContent({
+      await enhanceArticleContent({
         root,
         codeBlocks: post.value.codeBlocks || [],
       });
