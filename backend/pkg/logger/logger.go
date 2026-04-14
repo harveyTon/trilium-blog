@@ -14,7 +14,7 @@ import (
 
 var Logger zerolog.Logger
 
-func Init() {
+func Init(level string) {
 	logDir := "./logs"
 	if err := os.MkdirAll(logDir, 0755); err != nil {
 		log.Fatal().Err(err).Msg("Unable to create log directory")
@@ -22,7 +22,6 @@ func Init() {
 
 	currentLogFile := filepath.Join(logDir, "current.log")
 
-	// Check if current.log exists and rename it if it's from a previous day
 	if info, err := os.Stat(currentLogFile); err == nil {
 		lastModified := info.ModTime()
 		if lastModified.Day() != time.Now().Day() {
@@ -33,23 +32,35 @@ func Init() {
 		}
 	}
 
-	// Create lumberjack logger for log rotation
 	lumberjackLogger := &lumberjack.Logger{
 		Filename:   currentLogFile,
-		MaxSize:    100, // megabytes
+		MaxSize:    100,
 		MaxBackups: 30,
-		MaxAge:     30,   // days
-		Compress:   true, // compress old logs
+		MaxAge:     30,
+		Compress:   true,
 	}
 
-	// Create multi-writer for console and file output
 	multi := zerolog.MultiLevelWriter(zerolog.ConsoleWriter{Out: os.Stdout}, lumberjackLogger)
 
-	// Set global logger
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	zerolog.SetGlobalLevel(parseLevel(level))
 	Logger = zerolog.New(multi).With().Timestamp().Caller().Logger()
 
 	log.Logger = Logger
+}
+
+func parseLevel(level string) zerolog.Level {
+	switch level {
+	case "debug":
+		return zerolog.DebugLevel
+	case "warn":
+		return zerolog.WarnLevel
+	case "error":
+		return zerolog.ErrorLevel
+	case "fatal":
+		return zerolog.FatalLevel
+	default:
+		return zerolog.InfoLevel
+	}
 }
 
 // GinLogger returns Gin's logging middleware

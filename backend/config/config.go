@@ -36,6 +36,7 @@ type AppConfig struct {
 	Domain          string
 	Locale          string
 	AdminToken      string
+	LogLevel        string
 	ImageProxy      ImageProxyConfig
 	AISummary       AISummaryConfig
 }
@@ -52,6 +53,7 @@ func LoadConfig() {
 		Domain:          getEnv("DOMAIN", ""),
 		Locale:          normalizeLocale(getEnv("LOCALE", "zh-CN")),
 		AdminToken:      getEnv("ADMIN_TOKEN", ""),
+		LogLevel:        normalizeLogLevel(getEnv("LOG_LEVEL", "info")),
 		ImageProxy: ImageProxyConfig{
 			Enabled: getEnvBool("IMAGE_PROXY_ENABLED", false),
 			BaseURL: getEnv("IMAGE_PROXY_BASE_URL", ""),
@@ -135,6 +137,21 @@ func normalizeLocale(locale string) string {
 		return "en"
 	default:
 		return "zh-CN"
+	}
+}
+
+func normalizeLogLevel(level string) string {
+	switch strings.ToLower(strings.TrimSpace(level)) {
+	case "debug":
+		return "debug"
+	case "warn", "warning":
+		return "warn"
+	case "error":
+		return "error"
+	case "fatal":
+		return "fatal"
+	default:
+		return "info"
 	}
 }
 

@@ -20,10 +20,11 @@ var blockedIPNets = mustParseCIDRs([]string{
 type APIHandler struct {
 	service    *blog.Service
 	adminToken string
+	locale     string
 }
 
-func NewAPIHandler(service *blog.Service, adminToken string) *APIHandler {
-	return &APIHandler{service: service, adminToken: adminToken}
+func NewAPIHandler(service *blog.Service, adminToken string, locale string) *APIHandler {
+	return &APIHandler{service: service, adminToken: adminToken, locale: locale}
 }
 
 func (h *APIHandler) AdminAuthMiddleware(c *gin.Context) {

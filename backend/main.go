@@ -84,7 +84,7 @@ func resolveFrontendDist() string {
 }
 
 func main() {
-	logger.Init()
+	logger.Init(config.Config.LogLevel)
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = io.Discard
 
@@ -147,7 +147,7 @@ func main() {
 		blog.WithAISummaryQueue(aiQueue),
 		blog.WithAISummaryEnabled(aiSummaryEnabled),
 	)
-	apiHandler := handlers.NewAPIHandler(service, config.Config.AdminToken)
+	apiHandler := handlers.NewAPIHandler(service, config.Config.AdminToken, config.Config.Locale)
 	r := setupRouter(apiHandler)
 
 	go service.Preload()
