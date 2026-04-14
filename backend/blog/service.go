@@ -12,6 +12,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/harveyTon/trilium-blog/backend/etapi"
+	"github.com/harveyTon/trilium-blog/backend/pkg/logger"
 	"github.com/microcosm-cc/bluemonday"
 )
 
@@ -1176,4 +1177,48 @@ func extractAttachmentId(src string) string {
 		return ""
 	}
 	return m[1]
+}
+
+func (s *Service) Preload() {
+	notes, err := s.getCachedNotes("#blog=true")
+	if err != nil {
+		logger.Error("Preload: failed to fetch notes", err)
+		return
+	}
+
+	var blogNotes []etapi.Note
+	for _, n := range notes {
+		if n.Type == "text" && hasBlogLabel(n.Attributes) {
+			blogNotes = append(blogNotes, n)
+		}
+	}
+
+	if len(blogNotes) == 0 {
+		logger.Info("Preload: no blog posts found")
+		return
+	}
+
+	logger.Info(fmt.Sprintf("Preload: caching content for %d posts", len(blogNotes)))
+
+	sem := make(chan struct{}, 5)
+	var wg sync.WaitGroup
+	var cached, failed int
+
+	for _, n := range blogNotes {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(noteID string) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			if _, err := s.getCachedNoteContent(noteID); err != nil {
+				logger.Error(fmt.Sprintf("Preload: failed to cache content for note %s", noteID), err)
+				failed++
+			} else {
+				cached++
+			}
+		}(n.NoteID)
+	}
+	wg.Wait()
+
+	logger.Info(fmt.Sprintf("Preload: done (%d cached, %d failed)", cached, failed))
 }

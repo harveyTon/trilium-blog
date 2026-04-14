@@ -139,6 +139,8 @@ func main() {
 	apiHandler := handlers.NewAPIHandler(service)
 	r := setupRouter(apiHandler)
 
+	go service.Preload()
+
 	defaultPort := os.Getenv("PORT")
 	if defaultPort == "" {
 		defaultPort = "8080"
