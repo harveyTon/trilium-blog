@@ -159,7 +159,13 @@ export default {
 }
 
 html.dark .post-item {
-  border-color: rgba(255, 255, 255, 0.04);
+  border-color: var(--border-soft);
+}
+
+@media (max-width: 768px) {
+  html.dark .post-item {
+    border-color: var(--border);
+  }
 }
 
 html.dark .post-date {
@@ -170,7 +176,11 @@ html.dark .post-date {
 @media (max-width: 768px) {
   .post-item {
     display: block;
-    padding: 18px 0;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    background: var(--surface-muted);
   }
 
   .post-date {
