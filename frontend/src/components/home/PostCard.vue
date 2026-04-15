@@ -8,7 +8,7 @@
       <h2 class="post-title">
         <router-link :to="{ name: 'Article', params: { noteId: post.noteId } }">{{ post.title }}</router-link>
       </h2>
-      <SummaryPreview :content="resolvedSummary" :type="summaryType" hide-badge :lines="3" :indent="summaryType === 'ai'" card />
+      <SummaryPreview :content="resolvedSummary" :type="summaryType" hide-badge :lines="3" card />
       <div class="post-meta">{{ fullDate }}</div>
     </div>
   </article>
