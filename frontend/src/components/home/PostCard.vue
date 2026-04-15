@@ -193,7 +193,7 @@ html.dark .post-date {
   }
 
   .post-title a::after {
-    margin-top: 12px;
+  margin-top: 4px;
   }
 
   .post-item:hover .post-title a::after,

@@ -99,7 +99,7 @@ export default {
 }
 
 .summary-preview--card {
-  margin: 8px 0 0;
+  margin: 4px 0 0;
   font-size: 14px;
   line-height: 1.7;
   color: var(--text-faint);
