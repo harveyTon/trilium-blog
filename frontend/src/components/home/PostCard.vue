@@ -129,7 +129,6 @@ export default {
 }
 
 .post-item:hover {
-  border-color: color-mix(in srgb, var(--border) 72%, var(--accent) 28%);
 }
 
 .post-item:hover .post-title a,
