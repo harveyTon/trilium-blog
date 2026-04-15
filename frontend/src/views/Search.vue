@@ -17,7 +17,16 @@
       <template v-else>
         <el-alert v-if="error" :title="error" type="error" show-icon :closable="false" />
         <div v-else-if="loading" class="search-loading">
-          <el-skeleton :rows="6" animated />
+          <div class="search-skeleton-filters">
+            <div class="search-skeleton-filter-label"></div>
+            <div class="search-skeleton-filter-chip"></div>
+          </div>
+          <div v-for="i in 4" :key="i" class="search-skeleton-card">
+            <div class="search-skeleton-card-title"></div>
+            <div class="search-skeleton-card-date"></div>
+            <div class="search-skeleton-card-snippet"></div>
+            <div class="search-skeleton-card-snippet search-skeleton-card-snippet--short"></div>
+          </div>
         </div>
         <div v-else class="search-result-shell">
           <SearchFilters />
@@ -98,6 +107,76 @@ export default {
 
 .search-loading {
   padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.search-skeleton-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-skeleton-filter-label {
+  width: 40px;
+  height: 13px;
+  background: var(--border-soft);
+  border-radius: 4px;
+  animation: skeleton-pulse-search 1.6s ease-in-out infinite;
+}
+
+.search-skeleton-filter-chip {
+  width: 56px;
+  height: 30px;
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  background: var(--surface);
+  animation: skeleton-pulse-search 1.6s ease-in-out infinite;
+  animation-delay: 0.05s;
+}
+
+.search-skeleton-card {
+  border: 1px solid var(--border-soft);
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  animation: skeleton-pulse-search 1.6s ease-in-out infinite;
+  animation-delay: 0.1s;
+}
+
+.search-skeleton-card-title {
+  width: 60%;
+  height: 20px;
+  background: var(--border-soft);
+  border-radius: 4px;
+  margin-bottom: 10px;
+}
+
+.search-skeleton-card-date {
+  width: 100px;
+  height: 13px;
+  background: var(--border-soft);
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+.search-skeleton-card-snippet {
+  width: 85%;
+  height: 14px;
+  background: var(--border-soft);
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.search-skeleton-card-snippet--short {
+  width: 50%;
+  margin-bottom: 0;
+}
+
+@keyframes skeleton-pulse-search {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
 }
 
 .search-result-shell {

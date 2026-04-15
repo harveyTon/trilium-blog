@@ -6,20 +6,20 @@
     />
     <el-skeleton :loading="loading" animated>
       <template #template>
-        <el-skeleton-item
-          variant="p"
-          style="width: 100%; height: 32px; margin-bottom: 16px"
-        />
-        <el-skeleton-item
-          variant="text"
-          style="width: 30%; margin-bottom: 16px"
-        />
-        <el-skeleton-item
-          v-for="i in 10"
-          :key="i"
-          variant="p"
-          style="width: 100%; height: 16px; margin-bottom: 12px"
-        />
+        <div class="article-skeleton">
+          <div class="article-skeleton-title"></div>
+          <div class="article-skeleton-meta">
+            <div class="article-skeleton-date"></div>
+          </div>
+          <div class="article-skeleton-divider"></div>
+          <div class="article-skeleton-paragraph"></div>
+          <div class="article-skeleton-paragraph"></div>
+          <div class="article-skeleton-paragraph article-skeleton-paragraph--short"></div>
+          <div class="article-skeleton-paragraph"></div>
+          <div class="article-skeleton-paragraph article-skeleton-paragraph--medium"></div>
+          <div class="article-skeleton-paragraph"></div>
+          <div class="article-skeleton-paragraph article-skeleton-paragraph--short"></div>
+        </div>
       </template>
       <template #default>
         <div
@@ -1314,5 +1314,86 @@ html.dark .article-content :not(pre) > code {
 
 .load-error .el-button {
   margin-top: 16px;
+}
+
+.article-skeleton {
+  max-width: var(--content-w);
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+.article-skeleton-title {
+  width: 75%;
+  height: 40px;
+  background: var(--border-soft);
+  border-radius: 6px;
+  margin-bottom: 14px;
+  animation: skeleton-pulse-article 1.6s ease-in-out infinite;
+}
+
+.article-skeleton-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.article-skeleton-date {
+  width: 140px;
+  height: 15px;
+  background: var(--border-soft);
+  border-radius: 4px;
+  animation: skeleton-pulse-article 1.6s ease-in-out infinite;
+  animation-delay: 0.05s;
+}
+
+.article-skeleton-divider {
+  height: 1px;
+  background: var(--border-soft);
+  margin: 24px 0 32px;
+  animation: skeleton-pulse-article 1.6s ease-in-out infinite;
+  animation-delay: 0.08s;
+}
+
+.article-skeleton-paragraph {
+  width: 100%;
+  height: 16px;
+  background: var(--border-soft);
+  border-radius: 4px;
+  margin-bottom: 14px;
+  animation: skeleton-pulse-article 1.6s ease-in-out infinite;
+  animation-delay: 0.12s;
+}
+
+.article-skeleton-paragraph--short {
+  width: 35%;
+  animation-delay: 0.16s;
+}
+
+.article-skeleton-paragraph--medium {
+  width: 72%;
+  animation-delay: 0.16s;
+}
+
+@keyframes skeleton-pulse-article {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@media (max-width: 1024px) {
+  .article-skeleton {
+    padding: 24px 16px 64px;
+  }
+}
+
+@media (max-width: 768px) {
+  .article-skeleton {
+    padding: 24px 16px 64px;
+  }
+
+  .article-skeleton-title {
+    height: 30px;
+    width: 85%;
+  }
 }
 </style>

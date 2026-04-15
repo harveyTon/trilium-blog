@@ -1,7 +1,23 @@
 <template>
   <div class="home">
     <div class="home-sections">
-      <FeaturedSection :items="featuredPosts" />
+      <div v-if="loading" class="featured-skeleton" aria-hidden="true">
+        <div class="featured-skeleton-header">
+          <div class="featured-skeleton-kicker"></div>
+          <div class="featured-skeleton-heading"></div>
+        </div>
+        <div class="featured-skeleton-card">
+          <div class="featured-skeleton-card-meta">
+            <div class="featured-skeleton-card-badge"></div>
+            <div class="featured-skeleton-card-date"></div>
+          </div>
+          <div class="featured-skeleton-card-title"></div>
+          <div class="featured-skeleton-card-title featured-skeleton-card-title--short"></div>
+          <div class="featured-skeleton-card-summary"></div>
+          <div class="featured-skeleton-card-summary featured-skeleton-card-summary--short"></div>
+        </div>
+      </div>
+      <FeaturedSection v-else :items="featuredPosts" />
     </div>
 
     <section class="home-feed-section">
@@ -11,13 +27,12 @@
       </div>
 
       <div v-if="loading" class="post-list" aria-busy="true">
-        <div v-for="i in 5" :key="i" class="post-item post-item--skeleton">
+        <div v-for="i in 9" :key="i" class="post-item post-item--skeleton">
           <div class="skeleton-date"></div>
           <div class="skeleton-right">
             <div class="skeleton-title"></div>
-            <div class="skeleton-line"></div>
-            <div class="skeleton-meta"></div>
             <div class="skeleton-summary"></div>
+            <div class="skeleton-summary skeleton-summary--short"></div>
           </div>
         </div>
       </div>
@@ -294,40 +309,23 @@ export default {
   min-width: 92px;
   border: 1px solid var(--border-soft);
   background: var(--surface-muted);
+  border-radius: 2px;
   animation: skeleton-pulse 1.6s ease-in-out infinite;
 }
 
 .skeleton-right {
   flex: 1;
   min-width: 0;
+  padding-top: 2px;
 }
 
 .skeleton-title {
   width: 70%;
-  height: 24px;
+  height: 22px;
   background: var(--border-soft);
   border-radius: 4px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
   animation: skeleton-pulse 1.6s ease-in-out infinite;
-}
-
-.skeleton-line {
-  width: 120px;
-  height: 1px;
-  background: var(--border-soft);
-  margin-bottom: 12px;
-  animation: skeleton-pulse 1.6s ease-in-out infinite;
-  animation-delay: 0.05s;
-}
-
-.skeleton-meta {
-  width: 40%;
-  height: 12px;
-  background: var(--border-soft);
-  border-radius: 4px;
-  margin-bottom: 12px;
-  animation: skeleton-pulse 1.6s ease-in-out infinite;
-  animation-delay: 0.1s;
 }
 
 .skeleton-summary {
@@ -335,8 +333,110 @@ export default {
   height: 16px;
   background: var(--border-soft);
   border-radius: 4px;
+  margin-top: 10px;
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+  animation-delay: 0.08s;
+}
+
+.skeleton-summary--short {
+  width: 60%;
+  animation-delay: 0.12s;
+}
+
+.featured-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 12px;
+}
+
+.featured-skeleton-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.featured-skeleton-kicker {
+  width: 80px;
+  height: 12px;
+  background: var(--border-soft);
+  border-radius: 4px;
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+.featured-skeleton-heading {
+  width: 160px;
+  height: 28px;
+  background: var(--border-soft);
+  border-radius: 6px;
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+  animation-delay: 0.05s;
+}
+
+.featured-skeleton-card {
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+  background: var(--surface);
+  padding: 24px 28px;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+.featured-skeleton-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 20px;
+}
+
+.featured-skeleton-card-badge {
+  width: 40px;
+  height: 11px;
+  background: var(--border-soft);
+  border-radius: 4px;
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+  animation-delay: 0.1s;
+}
+
+.featured-skeleton-card-date {
+  width: 80px;
+  height: 11px;
+  background: var(--border-soft);
+  border-radius: 4px;
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+  animation-delay: 0.12s;
+}
+
+.featured-skeleton-card-title {
+  width: 65%;
+  height: 26px;
+  margin-top: 16px;
+  background: var(--border-soft);
+  border-radius: 4px;
   animation: skeleton-pulse 1.6s ease-in-out infinite;
   animation-delay: 0.15s;
+}
+
+.featured-skeleton-card-title--short {
+  width: 40%;
+  margin-top: 8px;
+  animation-delay: 0.18s;
+}
+
+.featured-skeleton-card-summary {
+  width: 85%;
+  height: 14px;
+  margin-top: 14px;
+  background: var(--border-soft);
+  border-radius: 4px;
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+  animation-delay: 0.22s;
+}
+
+.featured-skeleton-card-summary--short {
+  width: 55%;
+  animation-delay: 0.26s;
 }
 
 @keyframes skeleton-pulse {
@@ -439,10 +539,28 @@ html.dark :deep(.el-pager li.is-active) {
 
   .post-item--skeleton {
     display: block;
+    padding: 16px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border-soft);
+    border-radius: 12px;
+    background: var(--surface-muted);
+    border-bottom: 1px solid var(--border-soft);
   }
 
   .skeleton-date {
     display: none;
+  }
+
+  .featured-skeleton-card {
+    --fc-px: 20px;
+    --fc-py: 20px;
+    padding: var(--fc-py) var(--fc-px);
+    border-radius: 14px;
+    min-height: 260px;
+  }
+
+  .featured-skeleton-card-title {
+    height: 22px;
   }
 }
 </style>
