@@ -2,12 +2,12 @@
   <p
     v-if="content"
     class="summary-preview"
-    :class="{ 'summary-preview--flush': flush }"
+    :class="[{ 'summary-preview--flush': flush, 'summary-preview--indent': indent }]"
     :style="previewStyle"
     :data-summary-type="type || 'fallback'"
   >
     <span v-if="type === 'ai' && !hideBadge" class="summary-badge">{{ badgeText }}</span>
-    {{ hideBadge && type === 'ai' ? '\u2002\u2002' + content : content }}
+    {{ content }}
   </p>
 </template>
 
@@ -44,6 +44,10 @@ export default {
     badgeText: {
       type: String,
       default: "AI",
+    },
+    indent: {
+      type: Boolean,
+      default: false,
     },
   },
   setup(props) {
@@ -92,6 +96,10 @@ export default {
 
 .summary-preview[data-summary-type="ai"] {
   color: var(--text);
+}
+
+.summary-preview--indent {
+  text-indent: 2em;
 }
 
 @media (max-width: 768px) {
