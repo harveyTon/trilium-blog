@@ -123,7 +123,7 @@ export default {
   width: 0;
   max-width: 100%;
   height: 2px;
-  margin-top: 12px;
+  margin-top: 4px;
   background: color-mix(in srgb, var(--accent) 88%, transparent);
   transition: width 0.18s ease, background 0.18s ease;
 }
