@@ -138,7 +138,7 @@ export default {
 }
 
 .post-item:hover .post-title a::after {
-  width: min(180px, 100%);
+  width: 100%;
 }
 
 .post-title a:focus-visible {
@@ -147,7 +147,7 @@ export default {
 }
 
 .post-title a:focus-visible::after {
-  width: min(180px, 100%);
+  width: 100%;
 }
 
 .post-meta {
@@ -198,7 +198,7 @@ html.dark .post-date {
 
   .post-item:hover .post-title a::after,
   .post-title a:focus-visible::after {
-    width: min(132px, 100%);
+    width: 100%;
   }
 
   .post-meta {
