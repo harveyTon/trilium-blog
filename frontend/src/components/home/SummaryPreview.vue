@@ -2,7 +2,7 @@
   <p
     v-if="content"
     class="summary-preview"
-    :class="[{ 'summary-preview--flush': flush, 'summary-preview--indent': indent }]"
+    :class="[{ 'summary-preview--flush': flush, 'summary-preview--indent': indent, 'summary-preview--card': card }]"
     :style="previewStyle"
     :data-summary-type="type || 'fallback'"
   >
@@ -49,6 +49,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    card: {
+      type: Boolean,
+      default: false,
+    },
   },
   setup(props) {
     const previewStyle = computed(() => ({
@@ -81,7 +85,7 @@ export default {
 
 .summary-preview {
   margin: 10px 0 0;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.75;
   color: var(--text-soft);
   display: -webkit-box;
@@ -94,8 +98,11 @@ export default {
   margin: 0;
 }
 
-.summary-preview[data-summary-type="ai"] {
-  color: var(--text);
+.summary-preview--card {
+  margin: 14px 0 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-faint);
 }
 
 .summary-preview--indent {
@@ -109,8 +116,13 @@ export default {
   }
 
   .summary-preview {
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.7;
+  }
+
+  .summary-preview--card {
+    font-size: 13px;
+    line-height: 1.65;
   }
 }
 </style>
