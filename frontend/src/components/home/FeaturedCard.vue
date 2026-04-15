@@ -9,7 +9,7 @@
         <h2 class="featured-title">{{ post.title }}</h2>
       </div>
       <div class="featured-summary-block">
-        <SummaryPreview :content="resolvedSummary" :type="summaryType" :lines="4" :flush="true" />
+        <SummaryPreview :content="resolvedSummary" :type="summaryType" :lines="4" :flush="true" badge-text="AI Summary" />
       </div>
     </router-link>
   </article>

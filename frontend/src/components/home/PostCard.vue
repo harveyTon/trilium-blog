@@ -9,7 +9,7 @@
         <router-link :to="{ name: 'Article', params: { noteId: post.noteId } }">{{ post.title }}</router-link>
       </h2>
       <div class="post-meta">{{ fullDate }}</div>
-      <SummaryPreview :content="resolvedSummary" :type="summaryType" />
+      <SummaryPreview :content="resolvedSummary" :type="summaryType" hide-badge />
     </div>
   </article>
 </template>

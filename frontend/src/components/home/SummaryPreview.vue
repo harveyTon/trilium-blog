@@ -6,8 +6,8 @@
     :style="previewStyle"
     :data-summary-type="type || 'fallback'"
   >
-    <span v-if="type === 'ai'" class="summary-badge">AI</span>
-    {{ content }}
+    <span v-if="type === 'ai' && !hideBadge" class="summary-badge">{{ badgeText }}</span>
+    {{ hideBadge && type === 'ai' ? '\u2002\u2002' + content : content }}
   </p>
 </template>
 
@@ -36,6 +36,14 @@ export default {
     tone: {
       type: String,
       default: "default",
+    },
+    hideBadge: {
+      type: Boolean,
+      default: false,
+    },
+    badgeText: {
+      type: String,
+      default: "AI",
     },
   },
   setup(props) {
