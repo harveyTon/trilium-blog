@@ -16,12 +16,12 @@ import (
 	"github.com/harveyTon/trilium-blog/backend/pkg/logger"
 )
 
-const summaryDatabasePath = "./data/summaries.db"
 const (
 	defaultRedisAddr       = "redis:6379"
 	defaultRedisPassword   = ""
 	defaultRedisDB         = 0
 	defaultRedisTTLSeconds = 300
+	customAssetsDir        = "./custom"
 )
 
 func setupRouter(apiHandler *handlers.APIHandler) *gin.Engine {
@@ -56,8 +56,8 @@ func setupRouter(apiHandler *handlers.APIHandler) *gin.Engine {
 
 	staticDir := resolveFrontendDist()
 	r.Static("/assets", filepath.Join(staticDir, "assets"))
-	r.StaticFile("/favicon.ico", filepath.Join(staticDir, "favicon.ico"))
-	r.StaticFile("/logo.png", filepath.Join(staticDir, "logo.png"))
+	r.StaticFile("/favicon.ico", resolveStaticFile(staticDir, "favicon.ico"))
+	r.StaticFile("/logo.png", resolveStaticFile(staticDir, "logo.png"))
 
 	r.NoRoute(func(c *gin.Context) {
 		if !strings.HasPrefix(c.Request.URL.Path, "/api") && c.Request.URL.Path != "/sitemap.xml" && c.Request.URL.Path != "/robots.txt" {
@@ -83,11 +83,32 @@ func resolveFrontendDist() string {
 	return "./frontend/dist"
 }
 
+func dataDir() string {
+	if d := os.Getenv("DATA_DIR"); d != "" {
+		return d
+	}
+	return "./data"
+}
+
+func resolveStaticFile(staticDir, name string) string {
+	customPath := filepath.Join(customAssetsDir, name)
+	if _, err := os.Stat(customPath); err == nil {
+		logger.Info(fmt.Sprintf("Using custom %s from %s", name, customPath))
+		return customPath
+	}
+	return filepath.Join(staticDir, name)
+}
+
 func main() {
 	config.LoadConfig()
 	logger.Init(config.Config.LogLevel)
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = io.Discard
+
+	dir := dataDir()
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		logger.Error("Failed to create data directory", err)
+	}
 
 	etapiClient := etapi.NewClient(config.Config.TriliumApiUrl, config.Config.TriliumToken)
 	var err error
@@ -101,12 +122,14 @@ func main() {
 		defaultRedisTTLSeconds,
 	)
 	if err != nil {
-		logger.Error("Failed to initialize Redis cache; continuing without Redis", err)
+		logger.Warn("Redis unavailable; falling back to file cache")
+		cacheStore = blog.InitFileCache(dir)
 	} else {
 		cacheStore = redisStore
 		defer redisStore.Close()
 	}
 
+	summaryDatabasePath := filepath.Join(dir, "summaries.db")
 	summaryStore, err := blog.NewSummaryStoreDB(summaryDatabasePath)
 	if err != nil {
 		logger.Error("Failed to initialize summary store; continuing without persisted summaries", err)

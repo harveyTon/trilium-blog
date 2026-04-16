@@ -12,6 +12,7 @@ services:
       - TZ=Asia/Shanghai
     volumes:
       - ./data:/app/data
+      - ./custom:/app/custom
     depends_on:
       - redis
 

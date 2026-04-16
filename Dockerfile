@@ -15,9 +15,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o trilium-blog .
 
 FROM alpine:3.21.3
 RUN apk --no-cache add ca-certificates tzdata
-ENV TZ="Asia/Shanghai"
 WORKDIR /app
 COPY --from=backend-builder /app/backend/trilium-blog .
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
+VOLUME /app/custom /app/data
 EXPOSE 8080
 CMD ["./trilium-blog"]
