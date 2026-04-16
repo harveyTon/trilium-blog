@@ -19,7 +19,7 @@
 - 后端使用 Chroma 识别代码语言，前端使用 Shiki 渲染高亮
 - 图片灯箱（Fancybox）
 - 外部图片代理与内置 `/api/imageproxy`
-- Redis 缓存、启动时异步预加载文章内容、SQLite 摘要存储
+- Redis 缓存（Redis 不可用时自动降级为文件缓存）、启动时异步预加载文章内容、SQLite 摘要存储
 - 暗黑模式与移动端适配
 - `sitemap.xml` / `robots.txt`
 
@@ -49,8 +49,8 @@ docker compose up -d --build
 其中：
 
 - Redis 地址固定为容器内 `redis:6379`，不需要额外配置。
-- AI / code summary 的 SQLite 数据库位于容器内 `/app/data/summaries.db`。
-- `trilium-blog-data` volume 会持久化摘要数据库，避免 `docker compose up -d --build` 后重复全量生成 AI summary。
+- AI / code summary 的 SQLite 数据库位于 `./data/summaries.db`，通过 volume 持久化。
+- 自定义 favicon 和 logo：将 `favicon.ico` 或 `logo.png` 放入 `./custom/` 目录即可覆盖默认资源。
 
 ### 本地开发
 
@@ -85,6 +85,7 @@ npm run dev
 | `ARTICLES_PER_PAGE` | 否 | `9` | 每页文章数 |
 | `PORT` | 否 | `8080` | 服务端口 |
 | `LOCALE` | 否 | `zh-CN` | 博客语言，支持 `zh-CN`（中文）和 `en`（英文） |
+| `DATA_DIR` | 否 | `./data` | 数据存储目录（摘要数据库、文件缓存） |
 | `ADMIN_TOKEN` | 否 | — | 管理页面令牌，设置后启用 `/admin` 缓存管理页面 |
 | `LOG_LEVEL` | 否 | `info` | 日志级别：`debug`、`info`、`warn`、`error`、`fatal` |
 | `IMAGE_PROXY_ENABLED` | 否 | `false` | 启用外部图片代理 |
@@ -101,7 +102,7 @@ npm run dev
 | `AI_SUMMARY_TIMEOUT_MS` | 否 | `60000` | 单次 AI 请求超时（毫秒） |
 | `AI_SUMMARY_MAX_INPUT_CHARS` | 否 | `12000` | 发送给 AI 的正文最大字符数 |
 
-AI summary 的 SQLite 文件由后端内部管理；在 Docker 环境下默认位于容器内 `/app/data/summaries.db`，并通过 `docker-compose.yml` 中的 volume 持久化，不需要用户配置路径。
+AI summary 的 SQLite 文件由后端内部管理；默认位于 `DATA_DIR/summaries.db`，通过 `docker-compose.yml` 中的 volume 持久化，不需要用户配置路径。
 
 ## AI 摘要
 
@@ -133,10 +134,17 @@ AI_SUMMARY_MODE=code
 
 ## 缓存与预加载
 
-- 所有文章列表、内容、附件均通过 Redis 缓存（策略驱动的 TTL 管理）。
-- 服务启动后会在后台异步预加载全部 `#blog=true` 文章的原始内容到 Redis，首次访问时直接命中缓存，无需等待 Trilium ETAPI 响应。
+- 所有文章列表、内容、附件通过缓存管理（策略驱动的 TTL 管理）。
+- 默认使用 Redis 缓存；如果 Redis 不可用，自动降级为文件缓存（存储在 `DATA_DIR/cache` 目录下）。
+- 服务启动后会在后台异步预加载全部 `#blog=true` 文章的原始内容到缓存，首次访问时直接命中，无需等待 Trilium ETAPI 响应。
 - 预加载仅缓存原始内容，不触发 code summary 或 AI summary 生成。
-- 如果 Redis 不可用，自动降级为无缓存模式，所有请求直接转发至 Trilium。
+
+### 自定义资源
+
+将以下文件放入 `./custom/` 目录（Docker 环境下映射到 `/app/custom/`）即可覆盖默认资源：
+
+- `favicon.ico` — 网站图标
+- `logo.png` — 网站 Logo
 
 ### 缓存管理
 

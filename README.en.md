@@ -19,7 +19,7 @@ A lightweight blog system powered by [TriliumNext Notes](https://github.com/Tril
 - Backend uses Chroma + enry for code language detection, frontend uses Shiki for syntax highlighting
 - Image lightbox (Fancybox)
 - External image proxy with built-in `/api/imageproxy`
-- Redis caching, async content preloading on startup, SQLite summary storage
+- Redis caching (auto fallback to file cache when Redis unavailable), async content preloading on startup, SQLite summary storage
 - i18n support (zh-CN / en) via `LOCALE` env variable
 - Dark mode and mobile responsive
 - `sitemap.xml` / `robots.txt`
@@ -50,8 +50,8 @@ The default deployment uses Docker Compose. The `docker-compose.yml` starts:
 Notes:
 
 - Redis address is fixed to `redis:6379` inside the container, no extra configuration needed.
-- AI / code summary SQLite database is located at `/app/data/summaries.db` inside the container.
-- The `trilium-blog-data` volume persists the summary database, preventing full AI summary regeneration after `docker compose up -d --build`.
+- AI / code summary SQLite database is located at `./data/summaries.db`, persisted via volume.
+- Custom favicon and logo: place `favicon.ico` or `logo.png` in the `./custom/` directory to override defaults.
 
 ### Local Development
 
@@ -86,6 +86,7 @@ All configuration is managed via environment variables (`.env` file):
 | `ARTICLES_PER_PAGE` | No | `9` | Articles per page |
 | `PORT` | No | `8080` | Server port |
 | `LOCALE` | No | `zh-CN` | Blog language, supports `zh-CN` (Chinese) and `en` (English) |
+| `DATA_DIR` | No | `./data` | Data storage directory (summary database, file cache) |
 | `ADMIN_TOKEN` | No | — | Admin page token; when set, enables the `/admin` cache management page |
 | `LOG_LEVEL` | No | `info` | Log level: `debug`, `info`, `warn`, `error`, `fatal` |
 | `IMAGE_PROXY_ENABLED` | No | `false` | Enable external image proxy |
@@ -102,7 +103,7 @@ All configuration is managed via environment variables (`.env` file):
 | `AI_SUMMARY_TIMEOUT_MS` | No | `60000` | Single AI request timeout (ms) |
 | `AI_SUMMARY_MAX_INPUT_CHARS` | No | `12000` | Max characters sent to AI |
 
-The AI summary SQLite file is managed internally by the backend; in Docker it defaults to `/app/data/summaries.db` and is persisted via the `docker-compose.yml` volume.
+The AI summary SQLite file is managed internally by the backend; defaults to `DATA_DIR/summaries.db` and is persisted via the `docker-compose.yml` volume.
 
 ## AI Summary
 
@@ -134,10 +135,17 @@ AI_SUMMARY_MODE=code
 
 ## Caching & Preloading
 
-- All article lists, content, and attachments are cached via Redis (policy-driven TTL management).
-- On startup, all `#blog=true` article content is preloaded into Redis asynchronously; first visits hit cache directly without waiting for Trilium ETAPI.
+- All article lists, content, and attachments are managed via caching (policy-driven TTL management).
+- Redis is used by default; if Redis is unavailable, the system automatically falls back to file-based caching (stored in `DATA_DIR/cache`).
+- On startup, all `#blog=true` article content is preloaded asynchronously; first visits hit cache directly without waiting for Trilium ETAPI.
 - Preloading only caches raw content and does not trigger code summary or AI summary generation.
-- If Redis is unavailable, the system falls back to no-cache mode, forwarding all requests directly to Trilium.
+
+### Custom Assets
+
+Place the following files in the `./custom/` directory (mapped to `/app/custom/` in Docker) to override defaults:
+
+- `favicon.ico` — Site favicon
+- `logo.png` — Site logo
 
 ### Cache Management
 
