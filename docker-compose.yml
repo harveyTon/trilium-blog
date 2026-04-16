@@ -11,25 +11,13 @@ services:
     environment:
       - TZ=Asia/Shanghai
     volumes:
-      - trilium-blog-data:/app/data
+      - ./data:/app/data
     depends_on:
       - redis
-    networks:
-      - trilium-network
 
   redis:
     image: redis:alpine
     container_name: trilium-redis
     command: redis-server --appendonly yes
     volumes:
-      - redis-data:/data
-    networks:
-      - trilium-network
-
-networks:
-  trilium-network:
-    driver: bridge
-
-volumes:
-  trilium-blog-data:
-  redis-data:
+      - ./redis-data:/data

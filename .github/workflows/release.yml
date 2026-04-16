@@ -1,0 +1,64 @@
+name: Release CI
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-verify:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goarch: amd64
+          - os: ubuntu-24.04-arm
+            goarch: arm64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: frontend
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: backend/go.sum
+
+      - name: Build backend
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=${{ matrix.goarch }} go build -o trilium-blog .
+        working-directory: backend
+
+      - name: Run backend tests
+        run: go test ./...
+        working-directory: backend
+
+  docker-verify:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux/amd64
+          - os: ubuntu-24.04-arm
+            platform: linux/arm64
+    runs-on: ${{ matrix.os }}
+    needs: build-verify
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t trilium-blog:verify .

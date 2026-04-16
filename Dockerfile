@@ -1,15 +1,6 @@
 FROM node:24.14.1-alpine AS frontend-builder
 WORKDIR /app/frontend
 
-RUN apk add --no-cache \
-    autoconf \
-    automake \
-    libtool \
-    nasm \
-    make \
-    g++ \
-    zlib-dev
-
 COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend .
