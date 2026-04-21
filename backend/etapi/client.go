@@ -140,13 +140,39 @@ func (c *Client) doRequest(url string, target interface{}) error {
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return err
+		return &RequestError{Err: err}
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusUnauthorized {
+		return &AuthError{}
+	}
+
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("request failed with status: %d", resp.StatusCode)
+		return &StatusError{StatusCode: resp.StatusCode}
 	}
 
 	return json.NewDecoder(resp.Body).Decode(target)
+}
+
+type RequestError struct {
+	Err error
+}
+
+func (e *RequestError) Error() string {
+	return fmt.Sprintf("request failed: %v", e.Err)
+}
+
+type AuthError struct{}
+
+func (e *AuthError) Error() string {
+	return "authentication failed: invalid or expired TRILIUM_TOKEN"
+}
+
+type StatusError struct {
+	StatusCode int
+}
+
+func (e *StatusError) Error() string {
+	return fmt.Sprintf("unexpected status: %d", e.StatusCode)
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/harveyTon/trilium-blog/backend/blog"
+	"github.com/harveyTon/trilium-blog/backend/etapi"
 )
 
 var blockedIPNets = mustParseCIDRs([]string{
@@ -121,11 +122,31 @@ func (h *APIHandler) ListPosts(c *gin.Context) {
 
 	posts, err := h.service.ListPosts(page)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch posts"})
+		classifyError(c, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, posts)
+}
+
+func classifyError(c *gin.Context, err error) {
+	if _, ok := err.(*etapi.AuthError); ok {
+		c.JSON(http.StatusBadGateway, gin.H{
+			"error":      "trilium_auth_failed",
+			"message":    "TRILIUM_TOKEN is invalid or expired. Please check your .env configuration.",
+			"suggestion": "Verify TRILIUM_TOKEN in Trilium Notes → Options → ETAPI.",
+		})
+		return
+	}
+	if _, ok := err.(*etapi.RequestError); ok {
+		c.JSON(http.StatusBadGateway, gin.H{
+			"error":      "trilium_unreachable",
+			"message":    "Cannot connect to Trilium Notes. Please check TRILIUM_API_URL.",
+			"suggestion": "If using Docker, use host.docker.internal instead of localhost.",
+		})
+		return
+	}
+	c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error", "message": err.Error()})
 }
 
 func (h *APIHandler) SearchPosts(c *gin.Context) {

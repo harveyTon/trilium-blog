@@ -38,11 +38,15 @@
       </div>
 
       <div v-else-if="fetchError" class="fetch-error">
-        <p>{{ fetchError }}</p>
+        <p class="fetch-error-title">{{ fetchError }}</p>
+        <p v-if="fetchHint" class="fetch-error-hint">{{ fetchHint }}</p>
         <el-button type="primary" @click="loadPosts">{{ t('home.retry') }}</el-button>
       </div>
 
-      <el-empty v-else-if="!posts.length" :description="t('home.noPosts')" />
+      <div v-else-if="!posts.length" class="empty-state">
+        <el-empty :description="t('home.noPosts')" />
+        <p class="empty-hint">{{ t('home.noPostsHint') }}</p>
+      </div>
       <PostFeed
         v-else
         :items="posts"
@@ -101,6 +105,7 @@ export default {
     const featuredPosts = ref([]);
     const loading = ref(true);
     const fetchError = ref(null);
+    const fetchHint = ref(null);
     const currentPage = ref(parsePageQuery(route.query.page));
     const featuredLoaded = ref(false);
     const loadedPage = ref(0);
@@ -127,6 +132,7 @@ export default {
     const loadPosts = async (page = currentPage.value) => {
       loading.value = true;
       fetchError.value = null;
+      fetchHint.value = null;
       try {
         const postResponse = await fetchPosts(page);
         posts.value = postResponse.items;
@@ -138,9 +144,19 @@ export default {
           total: postResponse.total,
           totalPages: postResponse.totalPages,
         };
-      } catch {
-        fetchError.value = t('home.fetchError');
+      } catch (e) {
         posts.value = [];
+        const resp = e?.response;
+        const code = resp?.data?.error;
+        if (code === "trilium_unreachable") {
+          fetchError.value = t("home.triliumUnreachable");
+          fetchHint.value = t("home.triliumUnreachableHint");
+        } else if (code === "trilium_auth_failed") {
+          fetchError.value = t("home.triliumAuthFailed");
+          fetchHint.value = t("home.triliumAuthFailedHint");
+        } else {
+          fetchError.value = t("home.fetchError");
+        }
       } finally {
         loading.value = false;
       }
@@ -515,13 +531,41 @@ html.dark :deep(.el-pager li.is-active) {
 
 .fetch-error {
   text-align: center;
-  color: var(--text-faint);
+  color: var(--text);
   padding: 40px 0;
   font-size: 0.95rem;
 }
 
+.fetch-error-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.fetch-error-hint {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: var(--text-faint);
+  line-height: 1.6;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .fetch-error .el-button {
   margin-top: 16px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.empty-hint {
+  margin-top: -8px;
+  font-size: 0.85rem;
+  color: var(--text-faint);
+  line-height: 1.6;
 }
 
 @media (max-width: 768px) {
